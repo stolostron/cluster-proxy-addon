@@ -4,16 +4,19 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/open-cluster-management/addon-framework/pkg/addonmanager"
 	"github.com/open-cluster-management/cluster-proxy-addon/pkg/helpers"
 	"github.com/open-cluster-management/cluster-proxy-addon/pkg/hub/addon"
+	"github.com/open-cluster-management/cluster-proxy-addon/pkg/hub/controllers"
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -24,6 +27,7 @@ const (
 
 type AddOnControllerOptions struct {
 	AgentImage string
+	Namespace  string
 }
 
 func NewAddOnControllerOptions() *AddOnControllerOptions {
@@ -42,13 +46,13 @@ func (o *AddOnControllerOptions) Complete(kubeClient kubernetes.Interface) error
 		return nil
 	}
 
-	namespace := helpers.GetCurrentNamespace(defaultNamespace)
+	o.Namespace = helpers.GetCurrentNamespace(defaultNamespace)
 	podName := os.Getenv("POD_NAME")
 	if len(podName) == 0 {
 		return fmt.Errorf("The pod enviroment POD_NAME is required")
 	}
 
-	pod, err := kubeClient.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+	pod, err := kubeClient.CoreV1().Pods(o.Namespace).Get(context.TODO(), podName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -72,7 +76,18 @@ func (o *AddOnControllerOptions) RunControllerManager(ctx context.Context, contr
 		return err
 	}
 
-	//TODO
+	kubeInformer := informers.NewSharedInformerFactoryWithOptions(kubeClient, 5*time.Minute, informers.WithNamespace(o.Namespace))
+
+	certRotationController := controllers.NewCertRotationController(
+		o.Namespace,
+		kubeClient,
+		kubeInformer.Core().V1().Secrets(),
+		kubeInformer.Core().V1().ConfigMaps(),
+		controllerContext.EventRecorder,
+	)
+
+	go kubeInformer.Start(ctx.Done())
+	go certRotationController.Run(ctx, 1)
 
 	mgr, err := addonmanager.New(controllerContext.KubeConfig)
 	if err != nil {
