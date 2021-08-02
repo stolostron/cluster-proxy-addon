@@ -1,0 +1,3 @@
+[submodule "dependencymagnet/anp"]
+	path = dependencymagnet/anp
+	url = git@github.com:kubernetes-sigs/apiserver-network-proxy.git

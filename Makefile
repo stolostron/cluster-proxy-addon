@@ -68,3 +68,18 @@ endif
 
 # TODO
 # include ./test/integration-test.mk
+
+# make api-network-proxy binaries
+ANP_DIR ?= dependencymagnet/anp
+
+build-anp: $(ANP_DIR)/cmd/server/main.go $(ANP_DIR)/cmd/agent/main.go cmd/apiserver-proxy/main.go cmd/user-proxy/main.go
+	rm -rf bin/
+	echo "Building proxy-agent"
+	cd $(ANP_DIR) && go build -o bin/proxy-agent cmd/agent/main.go
+	echo "Building proxy-server"
+	cd $(ANP_DIR) && go build -o bin/proxy-server cmd/server/main.go
+	cp -r $(ANP_DIR)/bin bin/
+	echo "Building apiserver-proxy"
+	go build -o bin/apiserver-proxy cmd/apiserver-proxy/main.go
+	echo "Building user-proxy"
+	go build -o bin/user-proxy cmd/user-proxy/main.go

@@ -1,0 +1,12 @@
+namespace: cluster-proxy-addon
+
+resources:
+  - deployment.yaml
+  - service.yaml
+
+images:
+  - name: cluster-proxy-addon
+    newName: quay.io/open-cluster-management/cluster-proxy-addon
+    newTag: latest
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
