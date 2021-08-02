@@ -10,15 +10,15 @@ require (
 	github.com/openshift/library-go v0.0.0-20210609150209-1c980926414c
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
-	k8s.io/api v0.21.1
-	k8s.io/apimachinery v0.21.1
-	k8s.io/client-go v0.21.1
-	k8s.io/component-base v0.21.1
-	open-cluster-management.io/registration-operator v0.4.0
+	k8s.io/api v0.21.3
+	k8s.io/apimachinery v0.21.3
+	k8s.io/client-go v0.21.3
+	k8s.io/component-base v0.21.3
 	k8s.io/klog/v2 v2.8.0
-    open-cluster-management.io/addon-framework v0.0.0-20210709073210-719dbb79d275
-    open-cluster-management.io/api v0.0.0-20210727123024-41c7397e9f2d
-    sigs.k8s.io/controller-runtime v0.9.5
+	open-cluster-management.io/addon-framework v0.0.0-20210709073210-719dbb79d275
+	open-cluster-management.io/api v0.0.0-20210727123024-41c7397e9f2d
+	open-cluster-management.io/registration-operator v0.4.0
+	sigs.k8s.io/controller-runtime v0.9.5
 )
 
 replace (
