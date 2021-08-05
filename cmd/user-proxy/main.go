@@ -7,7 +7,6 @@ import (
 	"errors"
 	goflag "flag"
 	"fmt"
-	"github.com/open-cluster-management/cluster-proxy-addon/pkg/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	utilflag "k8s.io/component-base/cli/flag"
@@ -17,6 +16,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"open-cluster-management.io/cluster-proxy-addon/pkg/config"
 	"os"
 	"os/signal"
 	"strconv"
@@ -33,7 +33,7 @@ const (
 
 const (
 	ClusterRequestProto = "http"
-	ProxyUds            = "/go/src/github.com/open-cluster-management/api-network-proxy-addon/socket"
+	ProxyUds            = "/go/src/open-cluster-management.io/api-network-proxy-addon/socket"
 )
 
 type UserServer struct {

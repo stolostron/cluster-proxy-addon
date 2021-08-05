@@ -5,8 +5,8 @@ import (
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 
-	"github.com/open-cluster-management/cluster-proxy-addon/pkg/hub"
-	"github.com/open-cluster-management/cluster-proxy-addon/pkg/version"
+	"open-cluster-management.io/cluster-proxy-addon/pkg/hub"
+	"open-cluster-management.io/cluster-proxy-addon/pkg/version"
 )
 
 func NewController() *cobra.Command {

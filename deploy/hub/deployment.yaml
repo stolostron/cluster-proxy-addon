@@ -19,7 +19,7 @@ spec:
           command:
             - "/proxy-server"
             - "--mode=http-connect"
-            - "--agent-port={{.PROXY_SERVER_PORT}}"
+            - "--agent-port={{ .PROXY_SERVER_PORT }}"
             - "--cluster-ca-cert=/certs/cluster-proxy-ca.crt"
             - "--cluster-cert=/certs/cluster-proxy-server.crt"
             - "--cluster-key=/certs/cluster-proxy-server.key"
@@ -32,12 +32,12 @@ spec:
               readOnly: true
           ports:
             - name: agentport
-              containerPort: {{.PROXY_SERVER_PORT}}
+              containerPort: {{ .PROXY_SERVER_PORT }}
         - name: user-server
           image: cluster-proxy-addon
           command:
             - "/user-server"
-            - "--server-port={{.USER_SERVER_PORT}}"
+            - "--server-port={{ .USER_SERVER_PORT }}"
             - "--server-key=/certs/cluster-proxy-server.key"
             - "--server-cert=/certs/cluster-proxy-server.crt"
             - "--proxy-uds=/cluster-proxy-addon-socket"
@@ -47,7 +47,7 @@ spec:
               readOnly: true
           ports:
             - name: userport
-              containerPort: {{.USER_SERVER_PORT}}
+              containerPort: {{ .USER_SERVER_PORT }}
       volumes:
         - name: certs
           secret:

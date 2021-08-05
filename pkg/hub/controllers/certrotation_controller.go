@@ -3,9 +3,10 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"open-cluster-management.io/cluster-proxy-addon/pkg/config"
 	"time"
 
-	"open-cluster-management.io/registration-operator/pkg/certrotation"
+	"open-cluster-management.io/cluster-proxy-addon/pkg/certrotation"
 
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -13,13 +14,6 @@ import (
 
 	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
-)
-
-const (
-	signerSecret           = "cluster-proxy-signer"
-	caBundleConfigmap      = "cluster-proxy-ca-bundle"
-	clusterProxyAddOnSecet = "cluster-proxy-addon-serving-cert"
-	signerNamePrefix       = "cluster-proxy-addon"
 )
 
 // Follow the rules below to set the value of SigningCertValidity/TargetCertValidity/ResyncInterval:
@@ -46,8 +40,8 @@ func NewCertRotationController(
 	c := &certRotationController{
 		signingRotation: certrotation.SigningRotation{
 			Namespace:        namespace,
-			Name:             signerSecret,
-			SignerNamePrefix: signerNamePrefix,
+			Name:             config.SignerSecret,
+			SignerNamePrefix: config.SignerNamePrefix,
 			Validity:         SigningCertValidity,
 			Lister:           secretInformer.Lister(),
 			Client:           kubeClient.CoreV1(),
@@ -55,7 +49,7 @@ func NewCertRotationController(
 		},
 		caBundleRotation: certrotation.CABundleRotation{
 			Namespace:     namespace,
-			Name:          caBundleConfigmap,
+			Name:          config.CaBundleConfigmap,
 			Lister:        configMapInformer.Lister(),
 			Client:        kubeClient.CoreV1(),
 			EventRecorder: recorder,
@@ -63,7 +57,7 @@ func NewCertRotationController(
 		targetRotations: []certrotation.TargetRotation{
 			{
 				Namespace:     namespace,
-				Name:          clusterProxyAddOnSecet,
+				Name:          config.ClusterProxyAddOnSecret,
 				Validity:      TargetCertValidity,
 				HostNames:     []string{fmt.Sprintf("%s.%s.svc", "route", namespace)}, //TODO: using an actual service
 				Lister:        secretInformer.Lister(),

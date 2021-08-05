@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	goflag "flag"
 	"fmt"
-	"github.com/open-cluster-management/cluster-proxy-addon/pkg/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	utilflag "k8s.io/component-base/cli/flag"
@@ -13,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"open-cluster-management.io/cluster-proxy-addon/pkg/config"
 	"os"
 	"strconv"
 )

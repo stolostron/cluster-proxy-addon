@@ -5,8 +5,8 @@ metadata:
 spec:
   ports:
     - name: agentport
-      port: {{.PROXY_SERVER_PORT}}
+      port: {{ .PROXY_SERVER_PORT }}
     - name: userport
-      port: {{.USER_SERVER_PORT}}
+      port: {{ .USER_SERVER_PORT }}
   selector:
     app: anp-server

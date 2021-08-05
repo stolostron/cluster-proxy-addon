@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: anp-agent
+  name: anp-agent
+spec:
+  selector:
+    matchLabels:
+      app: anp-agent
+  template:
+    metadata:
+      labels:
+        app: anp-agent
+    spec:
+      hostAliases:
+        - ip: "127.0.0.1"
+          hostnames:
+            - "{{ .ClusterName }}"
+      containers:
+        - name: apiserver-proxy
+          image: {{ .Image }}
+          command:
+            - "/apiserver-proxy"
+          ports:
+            - containerPort: {{ .APIServerProxyPort }}
+        - name: proxy-agent
+          image: {{ .Image }}
+          command:
+            - "/proxy-agent"
+            - "--proxy-server-host={{ .ProxyServerHost }}"
+            - "--proxy-server-port={{ .ProxyServerPort }}"
+            - "--agent-identifiers=host={{ .ClusterName }}"
+            - "--ca-cert=/certs/cluster-proxy-ca.crt"
+            - "--agent-cert=/certs/cluster-proxy-agent.crt"
+            - "--agent-key=/certs/cluster-proxy-agent.key"
+          livenessProbe:
+            httpGet:
+              scheme: HTTP
+              port: 8093
+              path: /healthz
+            initialDelaySeconds: 15
+            timeoutSeconds: 15
+          volumeMounts:
+            - name: certs
+              mountPath: /certs
+              readOnly: true
+      volumes:
+        - name: /certs
+          secret:
+            secretName: certs

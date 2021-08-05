@@ -3,13 +3,16 @@ package spoke
 import (
 	"context"
 	"errors"
-
 	"github.com/spf13/cobra"
-
-	"github.com/open-cluster-management/addon-framework/pkg/lease"
-	"github.com/open-cluster-management/cluster-proxy-addon/pkg/helpers"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/clientcmd"
+	"open-cluster-management.io/cluster-proxy-addon/pkg/config"
+	"open-cluster-management.io/cluster-proxy-addon/pkg/spoke/controllers"
+	"time"
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
+	"open-cluster-management.io/addon-framework/pkg/lease"
+	"open-cluster-management.io/cluster-proxy-addon/pkg/helpers"
 
 	"k8s.io/client-go/kubernetes"
 )
@@ -47,7 +50,6 @@ func (o *AgentOptions) Validate() error {
 	if o.ClusterName == "" {
 		return errors.New("cluster name is empty")
 	}
-
 	return nil
 }
 
@@ -58,14 +60,25 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		return err
 	}
 
-	//TODO:
-
-	// start lease updater
 	spokeKubeClient, err := kubernetes.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {
 		return err
 	}
 
+	// Sync ca-bundle from hub to managed cluster
+	hubRestConfig, err := clientcmd.BuildConfigFromFlags("" /* leave masterurl as empty */, o.HubKubeconfigFile)
+	if err != nil {
+		return err
+	}
+	hubKubeClient, err := kubernetes.NewForConfig(hubRestConfig)
+	if err != nil {
+		return err
+	}
+	hubKubeInformerFactory := informers.NewSharedInformerFactoryWithOptions(hubKubeClient, 10*time.Minute, informers.WithNamespace(config.DEFAULT_NAMESPACE))
+	agentController := controllers.NewAgentController(spokeKubeClient, hubKubeInformerFactory.Core().V1().ConfigMaps(), controllerContext.EventRecorder)
+	go agentController.Run(ctx, 1)
+
+	// start lease updater
 	leaseUpdater := lease.NewLeaseUpdater(
 		spokeKubeClient,
 		addOnName,
