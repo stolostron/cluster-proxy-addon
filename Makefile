@@ -68,3 +68,13 @@ endif
 
 # TODO
 # include ./test/integration-test.mk
+
+ANP_DIR ?= dependencymagnet/anp
+
+build-addon: $(ANP_DIR)/cmd/server/main.go $(ANP_DIR)/cmd/agent/main.go cmd/cluster-proxy/main.go
+	rm -rf bin/
+	cd $(ANP_DIR) && go build -o bin/proxy-agent cmd/agent/main.go
+	cd $(ANP_DIR) && go build -o bin/proxy-server cmd/server/main.go
+	cp -r $(ANP_DIR)/bin bin/
+	go build -o bin/cluster-proxy cmd/cluster-proxy/main.go
+	
