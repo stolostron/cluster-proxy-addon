@@ -1,0 +1,60 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: anp-agent
+  namespace: {{ .AddonInstallNamespace }}
+  labels:
+    app: anp-agent
+spec:
+  selector:
+    matchLabels:
+      app: anp-agent
+  template:
+    metadata:
+      labels:
+        app: anp-agent
+    spec:
+      hostAliases:
+        - ip: "127.0.0.1"
+          hostnames:
+            - "{{ .ClusterName }}"
+      containers:
+        - name: apiserver-proxy
+          image: {{ .Image }}
+          command:
+            - "/apiserver-proxy"
+          ports:
+            - containerPort: {{ .APIServerProxyPort }}
+        - name: proxy-agent
+          image: {{ .Image }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - "/proxy-agent"
+            - "--proxy-server-host={{ .ProxyServerHost }}"
+            - "--proxy-server-port={{ .ProxyServerPort }}"
+            - "--agent-identifiers=host={{ .ClusterName }}"
+            - "--ca-cert=/ca/ca-bundle.crt"
+            - "--agent-cert=/tls/tls.crt"
+            - "--agent-key=/tls/tls.key"
+          livenessProbe:
+            httpGet:
+              scheme: HTTP
+              port: 8093
+              path: /healthz
+            initialDelaySeconds: 15
+            timeoutSeconds: 15
+          volumeMounts:
+            - name: tls-vol
+              mountPath: /tls
+              readOnly: true
+            - name: ca-vol
+              mountPath: /ca
+              readOnly: true
+      volumes:
+        - name: tls-vol
+          secret:
+            secretName: cluster-proxy-open-cluster-management.io-cluster-proxy-addon-client-cert
+        - name: ca-vol
+          configMap:
+            name: cluster-proxy-ca-bundle
+

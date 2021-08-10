@@ -1,0 +1,33 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: cluster-proxy-agent
+  namespace: {{ .AddonInstallNamespace }}
+  labels:
+    app: cluster-proxy-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cluster-proxy-agent
+  template:
+    metadata:
+      labels:
+        app: cluster-proxy-agent
+    spec:
+      serviceAccountName: cluster-proxy-agent-sa
+      volumes:
+        - name: hub-config
+          secret:
+            secretName: {{ .KubeConfigSecret }}
+      containers:
+        - name: cluster-proxy-agent
+          image: {{ .Image }}
+          args:
+            - "/cluster-proxy"
+            - "agent"
+            - "--hub-kubeconfig=/var/run/hub/kubeconfig"
+            - "--cluster-name={{ .ClusterName }}"
+          volumeMounts:
+            - name: hub-config
+              mountPath: /var/run/hub
