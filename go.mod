@@ -3,6 +3,7 @@ module github.com/open-cluster-management/cluster-proxy-addon
 go 1.16
 
 require (
+	github.com/cloudflare/cfssl v1.6.0
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/openshift/build-machinery-go v0.0.0-20210423112049-9415d7ebd33e
 	github.com/openshift/library-go v0.0.0-20210609150209-1c980926414c

@@ -58,8 +58,6 @@ func (o *AgentOptions) RunAgent(ctx context.Context, controllerContext *controll
 		return err
 	}
 
-	//TODO:
-
 	// start lease updater
 	spokeKubeClient, err := kubernetes.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {

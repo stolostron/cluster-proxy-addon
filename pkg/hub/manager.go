@@ -44,11 +44,12 @@ func (o *AddOnControllerOptions) AddFlags(cmd *cobra.Command) {
 }
 
 func (o *AddOnControllerOptions) Complete(kubeClient kubernetes.Interface) error {
+	o.Namespace = helpers.GetCurrentNamespace(defaultNamespace)
+
 	if len(o.AgentImage) != 0 {
 		return nil
 	}
 
-	o.Namespace = helpers.GetCurrentNamespace(defaultNamespace)
 	podName := os.Getenv("POD_NAME")
 	if len(podName) == 0 {
 		return fmt.Errorf("The pod enviroment POD_NAME is required")
@@ -67,7 +68,7 @@ func (o *AddOnControllerOptions) Complete(kubeClient kubernetes.Interface) error
 	return fmt.Errorf("The agent image cannot be found from the container %q of the pod %q", containerName, podName)
 }
 
-// RunControllerManager starts the controllers on hub to manage submariner deployment.
+// RunControllerManager starts the controllers on hub to manage cluster-proxy deployment.
 func (o *AddOnControllerOptions) RunControllerManager(ctx context.Context, controllerContext *controllercmd.ControllerContext) error {
 	kubeClient, err := kubernetes.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {

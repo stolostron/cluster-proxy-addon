@@ -42,7 +42,6 @@ func NewCertRotationController(
 	secretInformer corev1informers.SecretInformer,
 	configMapInformer corev1informers.ConfigMapInformer,
 	recorder events.Recorder) factory.Controller {
-
 	c := &certRotationController{
 		signingRotation: certrotation.SigningRotation{
 			Namespace:        namespace,

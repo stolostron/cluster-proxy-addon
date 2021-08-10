@@ -2,7 +2,12 @@
 // sources:
 // pkg/hub/addon/manifests/addon_deployment.yaml
 // pkg/hub/addon/manifests/anp_deployment.yaml
+// pkg/hub/addon/manifests/clusterrole.yaml
 // pkg/hub/addon/manifests/clusterrolebinding.yaml
+// pkg/hub/addon/manifests/configmap.yaml
+// pkg/hub/addon/manifests/namespace.yaml
+// pkg/hub/addon/manifests/role.yaml
+// pkg/hub/addon/manifests/rolebinding.yaml
 // pkg/hub/addon/manifests/serviceaccount.yaml
 package bindata
 
@@ -82,7 +87,7 @@ spec:
       containers:
         - name: cluster-proxy-agent
           image: {{ .Image }}
-          imagePullPolicy: IfNotPresent
+          
           args:
             - "/cluster-proxy"
             - "agent"
@@ -131,14 +136,15 @@ spec:
       containers:
         - name: apiserver-proxy
           image: {{ .Image }}
-          imagePullPolicy: IfNotPresent
+          
           command:
-            - "/apiserver-proxy"
+            - "/cluster-proxy"
+            - "apiserver-proxy"
           ports:
             - containerPort: {{ .APIServerProxyPort }}
         - name: proxy-agent
           image: {{ .Image }}
-          imagePullPolicy: IfNotPresent
+          
           command:
             - "/proxy-agent"
             - "--proxy-server-host={{ .ProxyServerHost }}"
@@ -164,10 +170,11 @@ spec:
       volumes:
         - name: tls-vol
           secret:
-            secretName: cluster-proxy-open-cluster-management.io-cluster-proxy-addon-client-cert
+            secretName: cluster-proxy-open-cluster-management.io-cluster-proxy-signer-client-cert
         - name: ca-vol
           configMap:
-            name: cluster-proxy-ca-bundle`)
+            name: cluster-proxy-ca-bundle
+`)
 
 func pkgHubAddonManifestsAnp_deploymentYamlBytes() ([]byte, error) {
 	return _pkgHubAddonManifestsAnp_deploymentYaml, nil
@@ -184,6 +191,33 @@ func pkgHubAddonManifestsAnp_deploymentYaml() (*asset, error) {
 	return a, nil
 }
 
+var _pkgHubAddonManifestsClusterroleYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: open-cluster-management:cluster-proxy-addon:agent
+rules:
+# Allow cluster-proxy-addon agent to run with openshift library-go
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+
+`)
+
+func pkgHubAddonManifestsClusterroleYamlBytes() ([]byte, error) {
+	return _pkgHubAddonManifestsClusterroleYaml, nil
+}
+
+func pkgHubAddonManifestsClusterroleYaml() (*asset, error) {
+	bytes, err := pkgHubAddonManifestsClusterroleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "pkg/hub/addon/manifests/clusterrole.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _pkgHubAddonManifestsClusterrolebindingYaml = []byte(`kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -191,7 +225,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: cluster-admin
+  name: open-cluster-management:cluster-proxy-addon:agent
 subjects:
   - kind: ServiceAccount
     name: cluster-proxy-agent-sa
@@ -209,6 +243,121 @@ func pkgHubAddonManifestsClusterrolebindingYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "pkg/hub/addon/manifests/clusterrolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _pkgHubAddonManifestsConfigmapYaml = []byte(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-proxy-ca-bundle
+  namespace: {{ .AddonInstallNamespace }}
+data:
+  ca-bundle.crt: | 
+    {{ .CABundleCrt | indent 4 }}
+`)
+
+func pkgHubAddonManifestsConfigmapYamlBytes() ([]byte, error) {
+	return _pkgHubAddonManifestsConfigmapYaml, nil
+}
+
+func pkgHubAddonManifestsConfigmapYaml() (*asset, error) {
+	bytes, err := pkgHubAddonManifestsConfigmapYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "pkg/hub/addon/manifests/configmap.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _pkgHubAddonManifestsNamespaceYaml = []byte(`apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .AddonInstallNamespace }}
+`)
+
+func pkgHubAddonManifestsNamespaceYamlBytes() ([]byte, error) {
+	return _pkgHubAddonManifestsNamespaceYaml, nil
+}
+
+func pkgHubAddonManifestsNamespaceYaml() (*asset, error) {
+	bytes, err := pkgHubAddonManifestsNamespaceYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "pkg/hub/addon/manifests/namespace.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _pkgHubAddonManifestsRoleYaml = []byte(`kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cluster-proxy-addon
+  namespace: {{ .AddonInstallNamespace }}
+rules:
+# Allow cluster-proxy-addon agent to run with openshift library-go
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+- apiGroups: ["apps"]
+  resources: ["replicasets"]
+  verbs: ["get"]
+- apiGroups: ["", "events.k8s.io"]
+  resources: ["events"]
+  verbs: ["create", "patch", "update"]
+# Allow cluster-proxy-addon agent to run with addon-framwork
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "update", "delete"]
+`)
+
+func pkgHubAddonManifestsRoleYamlBytes() ([]byte, error) {
+	return _pkgHubAddonManifestsRoleYaml, nil
+}
+
+func pkgHubAddonManifestsRoleYaml() (*asset, error) {
+	bytes, err := pkgHubAddonManifestsRoleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "pkg/hub/addon/manifests/role.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _pkgHubAddonManifestsRolebindingYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cluster-proxy-addon
+  namespace: {{ .AddonInstallNamespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cluster-proxy-addon
+subjects:
+  - kind: ServiceAccount
+    name: cluster-proxy-addon-sa
+`)
+
+func pkgHubAddonManifestsRolebindingYamlBytes() ([]byte, error) {
+	return _pkgHubAddonManifestsRolebindingYaml, nil
+}
+
+func pkgHubAddonManifestsRolebindingYaml() (*asset, error) {
+	bytes, err := pkgHubAddonManifestsRolebindingYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "pkg/hub/addon/manifests/rolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -289,7 +438,12 @@ func AssetNames() []string {
 var _bindata = map[string]func() (*asset, error){
 	"pkg/hub/addon/manifests/addon_deployment.yaml":   pkgHubAddonManifestsAddon_deploymentYaml,
 	"pkg/hub/addon/manifests/anp_deployment.yaml":     pkgHubAddonManifestsAnp_deploymentYaml,
+	"pkg/hub/addon/manifests/clusterrole.yaml":        pkgHubAddonManifestsClusterroleYaml,
 	"pkg/hub/addon/manifests/clusterrolebinding.yaml": pkgHubAddonManifestsClusterrolebindingYaml,
+	"pkg/hub/addon/manifests/configmap.yaml":          pkgHubAddonManifestsConfigmapYaml,
+	"pkg/hub/addon/manifests/namespace.yaml":          pkgHubAddonManifestsNamespaceYaml,
+	"pkg/hub/addon/manifests/role.yaml":               pkgHubAddonManifestsRoleYaml,
+	"pkg/hub/addon/manifests/rolebinding.yaml":        pkgHubAddonManifestsRolebindingYaml,
 	"pkg/hub/addon/manifests/serviceaccount.yaml":     pkgHubAddonManifestsServiceaccountYaml,
 }
 
@@ -340,7 +494,12 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"manifests": {nil, map[string]*bintree{
 					"addon_deployment.yaml":   {pkgHubAddonManifestsAddon_deploymentYaml, map[string]*bintree{}},
 					"anp_deployment.yaml":     {pkgHubAddonManifestsAnp_deploymentYaml, map[string]*bintree{}},
+					"clusterrole.yaml":        {pkgHubAddonManifestsClusterroleYaml, map[string]*bintree{}},
 					"clusterrolebinding.yaml": {pkgHubAddonManifestsClusterrolebindingYaml, map[string]*bintree{}},
+					"configmap.yaml":          {pkgHubAddonManifestsConfigmapYaml, map[string]*bintree{}},
+					"namespace.yaml":          {pkgHubAddonManifestsNamespaceYaml, map[string]*bintree{}},
+					"role.yaml":               {pkgHubAddonManifestsRoleYaml, map[string]*bintree{}},
+					"rolebinding.yaml":        {pkgHubAddonManifestsRolebindingYaml, map[string]*bintree{}},
 					"serviceaccount.yaml":     {pkgHubAddonManifestsServiceaccountYaml, map[string]*bintree{}},
 				}},
 			}},

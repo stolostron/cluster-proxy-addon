@@ -26,7 +26,7 @@ spec:
             - "--cluster-cert=/tls/tls.crt"
             - "--cluster-key=/tls/tls.key"
             - "--proxy-strategies=destHost"
-            - "--uds-name=/cluster-proxy-addon-socket"
+            - "--uds-name=/tmp/cluster-proxy-addon-socket"
             - "--delete-existing-uds-file=true"
           volumeMounts:
             - name: tls-vol
@@ -40,9 +40,9 @@ spec:
               containerPort: 9091
         - name: user-proxy
           image: quay.io/open-cluster-management/cluster-proxy-addon:latest
-          imagePullPolicy: IfNotPresent
           command:
-            - "/user-proxy"
+            - "/cluster-proxy"
+            - "user-server"
             - "--server-port=9092"
             - "--server-key=/tls/tls.key"
             - "--server-cert=/tls/tls.crt"
