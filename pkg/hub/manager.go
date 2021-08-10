@@ -8,10 +8,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/open-cluster-management/addon-framework/pkg/addonmanager"
 	"github.com/open-cluster-management/cluster-proxy-addon/pkg/helpers"
 	"github.com/open-cluster-management/cluster-proxy-addon/pkg/hub/addon"
 	"github.com/open-cluster-management/cluster-proxy-addon/pkg/hub/controllers"
+	"open-cluster-management.io/addon-framework/pkg/addonmanager"
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 
