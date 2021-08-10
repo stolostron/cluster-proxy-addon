@@ -14,6 +14,7 @@ require (
 	k8s.io/apimachinery v0.21.1
 	k8s.io/client-go v0.21.1
 	k8s.io/component-base v0.21.1
+	k8s.io/klog/v2 v2.8.0
 	open-cluster-management.io/registration-operator v0.4.0
 )
 
