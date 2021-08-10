@@ -87,7 +87,7 @@ func (u *userServer) proxyHandler(wr http.ResponseWriter, req *http.Request) {
 			}
 
 			requestAddress := fmt.Sprintf("%s:%d", clusterID, config.APISERVER_PROXY_PORT)
-			fmt.Fprintf(proxyConn, "CONNECT %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\n\r\n", requestAddress, "127.0.0.1")
+			fmt.Fprintf(proxyConn, "CONNECT %s HTTP/1.1\r\nHost: 127.0.0.1\r\nUser-Agent: user-agent\r\n\r\n", requestAddress)
 			br := bufio.NewReader(proxyConn)
 			res, err := http.ReadResponse(br, nil)
 			if err != nil {
