@@ -1,0 +1,4 @@
+resources:
+  - anp_deployment.yaml
+  - namespace.yaml
+  - service.yaml
