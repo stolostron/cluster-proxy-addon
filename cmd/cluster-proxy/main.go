@@ -28,14 +28,14 @@ func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	command := newSubmarinerControllerCommand()
+	command := newClusterProxyCommand()
 	if err := command.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
 }
 
-func newSubmarinerControllerCommand() *cobra.Command {
+func newClusterProxyCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cluster-proxy",
 		Short: "cluster-proxy",
@@ -52,7 +52,8 @@ func newSubmarinerControllerCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(hub.NewController())
+	cmd.AddCommand(hub.NewUserProxy())
 	cmd.AddCommand(spoke.NewAgent())
-
+	cmd.AddCommand(spoke.NewAPIServerProxy())
 	return cmd
 }

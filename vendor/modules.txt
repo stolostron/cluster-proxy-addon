@@ -90,56 +90,18 @@ github.com/modern-go/concurrent
 github.com/modern-go/reflect2
 # github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 github.com/munnerz/goautoneg
-# github.com/open-cluster-management/addon-framework v0.0.0-20210621074027-a81f712c10c2
-## explicit
-github.com/open-cluster-management/addon-framework/pkg/addonmanager
-github.com/open-cluster-management/addon-framework/pkg/addonmanager/constants
-github.com/open-cluster-management/addon-framework/pkg/addonmanager/controllers/agentdeploy
-github.com/open-cluster-management/addon-framework/pkg/addonmanager/controllers/certificate
-github.com/open-cluster-management/addon-framework/pkg/addonmanager/controllers/registration
-github.com/open-cluster-management/addon-framework/pkg/agent
-github.com/open-cluster-management/addon-framework/pkg/lease
-# github.com/open-cluster-management/api v0.0.0-20210527013639-a6845f2ebcb1
-## explicit
-github.com/open-cluster-management/api/addon/v1alpha1
-github.com/open-cluster-management/api/client/addon/clientset/versioned
-github.com/open-cluster-management/api/client/addon/clientset/versioned/scheme
-github.com/open-cluster-management/api/client/addon/clientset/versioned/typed/addon/v1alpha1
-github.com/open-cluster-management/api/client/addon/informers/externalversions
-github.com/open-cluster-management/api/client/addon/informers/externalversions/addon
-github.com/open-cluster-management/api/client/addon/informers/externalversions/addon/v1alpha1
-github.com/open-cluster-management/api/client/addon/informers/externalversions/internalinterfaces
-github.com/open-cluster-management/api/client/addon/listers/addon/v1alpha1
-github.com/open-cluster-management/api/client/cluster/clientset/versioned
-github.com/open-cluster-management/api/client/cluster/clientset/versioned/scheme
-github.com/open-cluster-management/api/client/cluster/clientset/versioned/typed/cluster/v1
-github.com/open-cluster-management/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1
-github.com/open-cluster-management/api/client/cluster/informers/externalversions
-github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster
-github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1
-github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1alpha1
-github.com/open-cluster-management/api/client/cluster/informers/externalversions/internalinterfaces
-github.com/open-cluster-management/api/client/cluster/listers/cluster/v1
-github.com/open-cluster-management/api/client/cluster/listers/cluster/v1alpha1
-github.com/open-cluster-management/api/client/work/clientset/versioned
-github.com/open-cluster-management/api/client/work/clientset/versioned/scheme
-github.com/open-cluster-management/api/client/work/clientset/versioned/typed/work/v1
-github.com/open-cluster-management/api/client/work/informers/externalversions
-github.com/open-cluster-management/api/client/work/informers/externalversions/internalinterfaces
-github.com/open-cluster-management/api/client/work/informers/externalversions/work
-github.com/open-cluster-management/api/client/work/informers/externalversions/work/v1
-github.com/open-cluster-management/api/client/work/listers/work/v1
-github.com/open-cluster-management/api/cluster/v1
-github.com/open-cluster-management/api/cluster/v1alpha1
-github.com/open-cluster-management/api/work/v1
-# github.com/openshift/api v0.0.0-20210331193751-3acddb19d360
+# github.com/openshift/api v0.0.0-20210521075222-e273a339932a
 github.com/openshift/api
+github.com/openshift/api/apiserver
+github.com/openshift/api/apiserver/v1
 github.com/openshift/api/apps
 github.com/openshift/api/apps/v1
 github.com/openshift/api/authorization
 github.com/openshift/api/authorization/v1
 github.com/openshift/api/build
 github.com/openshift/api/build/v1
+github.com/openshift/api/cloudnetwork
+github.com/openshift/api/cloudnetwork/v1
 github.com/openshift/api/config
 github.com/openshift/api/config/v1
 github.com/openshift/api/helm
@@ -185,7 +147,7 @@ github.com/openshift/api/template
 github.com/openshift/api/template/v1
 github.com/openshift/api/user
 github.com/openshift/api/user/v1
-# github.com/openshift/build-machinery-go v0.0.0-20210209125900-0da259a2c359
+# github.com/openshift/build-machinery-go v0.0.0-20210423112049-9415d7ebd33e
 ## explicit
 github.com/openshift/build-machinery-go
 github.com/openshift/build-machinery-go/make
@@ -195,7 +157,7 @@ github.com/openshift/build-machinery-go/make/targets/golang
 github.com/openshift/build-machinery-go/make/targets/openshift
 github.com/openshift/build-machinery-go/make/targets/openshift/operator
 github.com/openshift/build-machinery-go/scripts
-# github.com/openshift/library-go v0.0.0-20210406144447-d9cdfbd844ea
+# github.com/openshift/library-go v0.0.0-20210609150209-1c980926414c
 ## explicit
 github.com/openshift/library-go/pkg/authorization/hardcodedauthorizer
 github.com/openshift/library-go/pkg/certs
@@ -451,7 +413,7 @@ k8s.io/api/scheduling/v1beta1
 k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
-# k8s.io/apiextensions-apiserver v0.21.0-rc.0
+# k8s.io/apiextensions-apiserver v0.21.1
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1
@@ -514,7 +476,7 @@ k8s.io/apimachinery/pkg/version
 k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/apiserver v0.21.0-rc.0
+# k8s.io/apiserver v0.21.1
 k8s.io/apiserver/pkg/admission
 k8s.io/apiserver/pkg/admission/configuration
 k8s.io/apiserver/pkg/admission/initializer
@@ -916,8 +878,9 @@ k8s.io/component-base/metrics/prometheus/workqueue
 k8s.io/component-base/metrics/testutil
 k8s.io/component-base/version
 # k8s.io/klog/v2 v2.8.0
+## explicit
 k8s.io/klog/v2
-# k8s.io/kube-aggregator v0.21.0-rc.0
+# k8s.io/kube-aggregator v0.21.1
 k8s.io/kube-aggregator/pkg/apis/apiregistration
 k8s.io/kube-aggregator/pkg/apis/apiregistration/v1
 k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1
@@ -937,12 +900,59 @@ k8s.io/utils/net
 k8s.io/utils/path
 k8s.io/utils/pointer
 k8s.io/utils/trace
+# open-cluster-management.io/addon-framework v0.0.0-20210803032803-58eac513499e
+## explicit
+open-cluster-management.io/addon-framework/pkg/addonmanager
+open-cluster-management.io/addon-framework/pkg/addonmanager/constants
+open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/agentdeploy
+open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/certificate
+open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/registration
+open-cluster-management.io/addon-framework/pkg/agent
+open-cluster-management.io/addon-framework/pkg/lease
+# open-cluster-management.io/api v0.0.0-20210804091127-340467ff6239
+## explicit
+open-cluster-management.io/api/addon/v1alpha1
+open-cluster-management.io/api/client/addon/clientset/versioned
+open-cluster-management.io/api/client/addon/clientset/versioned/scheme
+open-cluster-management.io/api/client/addon/clientset/versioned/typed/addon/v1alpha1
+open-cluster-management.io/api/client/addon/informers/externalversions
+open-cluster-management.io/api/client/addon/informers/externalversions/addon
+open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1
+open-cluster-management.io/api/client/addon/informers/externalversions/internalinterfaces
+open-cluster-management.io/api/client/addon/listers/addon/v1alpha1
+open-cluster-management.io/api/client/cluster/clientset/versioned
+open-cluster-management.io/api/client/cluster/clientset/versioned/scheme
+open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1
+open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1alpha1
+open-cluster-management.io/api/client/cluster/informers/externalversions
+open-cluster-management.io/api/client/cluster/informers/externalversions/cluster
+open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1
+open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1alpha1
+open-cluster-management.io/api/client/cluster/informers/externalversions/internalinterfaces
+open-cluster-management.io/api/client/cluster/listers/cluster/v1
+open-cluster-management.io/api/client/cluster/listers/cluster/v1alpha1
+open-cluster-management.io/api/client/work/clientset/versioned
+open-cluster-management.io/api/client/work/clientset/versioned/scheme
+open-cluster-management.io/api/client/work/clientset/versioned/typed/work/v1
+open-cluster-management.io/api/client/work/informers/externalversions
+open-cluster-management.io/api/client/work/informers/externalversions/internalinterfaces
+open-cluster-management.io/api/client/work/informers/externalversions/work
+open-cluster-management.io/api/client/work/informers/externalversions/work/v1
+open-cluster-management.io/api/client/work/listers/work/v1
+open-cluster-management.io/api/cluster/v1
+open-cluster-management.io/api/cluster/v1alpha1
+open-cluster-management.io/api/work/v1
 # open-cluster-management.io/registration-operator v0.4.0 => github.com/open-cluster-management-io/registration-operator v0.4.0
 ## explicit
 open-cluster-management.io/registration-operator/pkg/certrotation
 # sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.15
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/proto/client
+# sigs.k8s.io/kube-storage-version-migrator v0.0.4
+sigs.k8s.io/kube-storage-version-migrator/pkg/apis/migration/v1alpha1
+sigs.k8s.io/kube-storage-version-migrator/pkg/clients/clientset
+sigs.k8s.io/kube-storage-version-migrator/pkg/clients/clientset/scheme
+sigs.k8s.io/kube-storage-version-migrator/pkg/clients/clientset/typed/migration/v1alpha1
 # sigs.k8s.io/structured-merge-diff/v4 v4.1.0
 sigs.k8s.io/structured-merge-diff/v4/fieldpath
 sigs.k8s.io/structured-merge-diff/v4/merge
