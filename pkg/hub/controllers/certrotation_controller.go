@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"open-cluster-management.io/registration-operator/pkg/certrotation"
@@ -38,6 +37,7 @@ type certRotationController struct {
 
 func NewCertRotationController(
 	namespace string,
+	anpRouteHost string,
 	kubeClient kubernetes.Interface,
 	secretInformer corev1informers.SecretInformer,
 	configMapInformer corev1informers.ConfigMapInformer,
@@ -65,7 +65,7 @@ func NewCertRotationController(
 				Namespace:     namespace,
 				Name:          clusterProxyAddOnSecet,
 				Validity:      TargetCertValidity,
-				HostNames:     []string{fmt.Sprintf("%s.%s.svc", "route", namespace)}, //TODO: using an actual service
+				HostNames:     []string{anpRouteHost},
 				Lister:        secretInformer.Lister(),
 				Client:        kubeClient.CoreV1(),
 				EventRecorder: recorder,

@@ -26,8 +26,9 @@ const (
 )
 
 type AddOnControllerOptions struct {
-	AgentImage string
-	Namespace  string
+	AgentImage   string
+	ANPRouteHost string
+	Namespace    string
 }
 
 func NewAddOnControllerOptions() *AddOnControllerOptions {
@@ -39,6 +40,7 @@ func (o *AddOnControllerOptions) AddFlags(cmd *cobra.Command) {
 	//TODO if downstream building supports to set downstream image, we could use this flag
 	// to set agent image on building phase
 	flags.StringVar(&o.AgentImage, "agent-image", o.AgentImage, "The image of addon agent.")
+	flags.StringVar(&o.ANPRouteHost, "anp-route-host", o.ANPRouteHost, "The host of anp route.")
 }
 
 func (o *AddOnControllerOptions) Complete(kubeClient kubernetes.Interface) error {
@@ -80,6 +82,7 @@ func (o *AddOnControllerOptions) RunControllerManager(ctx context.Context, contr
 
 	certRotationController := controllers.NewCertRotationController(
 		o.Namespace,
+		o.ANPRouteHost,
 		kubeClient,
 		kubeInformer.Core().V1().Secrets(),
 		kubeInformer.Core().V1().ConfigMaps(),
