@@ -1,4 +1,0 @@
-bases:
-  - ../rbac
-  - ../operator
-  - ../anp
