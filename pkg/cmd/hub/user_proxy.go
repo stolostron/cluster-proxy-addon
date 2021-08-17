@@ -139,8 +139,8 @@ func parseRequestURL(requestURL string) (clusterID string, kubeAPIPath string, e
 
 func NewUserProxy() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "anp-user-server",
-		Short: "anp-user-server",
+		Use:   "user-server",
+		Short: "user-server",
 		Run: func(cmd *cobra.Command, args []string) {
 			serverPort, err := cmd.Flags().GetInt(FlagServerPort)
 			if err != nil {

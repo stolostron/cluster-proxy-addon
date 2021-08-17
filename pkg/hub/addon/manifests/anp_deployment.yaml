@@ -22,12 +22,12 @@ spec:
         - name: apiserver-proxy
           image: {{ .Image }}
           command:
-            - "/apiserver-proxy"
+            - "/cluster-proxy"
+            - "apiserver-proxy"
           ports:
             - containerPort: {{ .APIServerProxyPort }}
         - name: proxy-agent
           image: {{ .Image }}
-          imagePullPolicy: IfNotPresent
           command:
             - "/proxy-agent"
             - "--proxy-server-host={{ .ProxyServerHost }}"
@@ -53,8 +53,7 @@ spec:
       volumes:
         - name: tls-vol
           secret:
-            secretName: cluster-proxy-open-cluster-management.io-cluster-proxy-addon-client-cert
+            secretName: cluster-proxy-open-cluster-management.io-cluster-proxy-signer-client-cert
         - name: ca-vol
           configMap:
             name: cluster-proxy-ca-bundle
-
