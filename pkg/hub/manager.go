@@ -26,9 +26,10 @@ const (
 )
 
 type AddOnControllerOptions struct {
-	AgentImage   string
-	ANPRouteHost string
-	Namespace    string
+	AgentImage    string
+	ANPPublicHost string
+	ANPPublicPort int
+	Namespace     string
 }
 
 func NewAddOnControllerOptions() *AddOnControllerOptions {
@@ -40,7 +41,8 @@ func (o *AddOnControllerOptions) AddFlags(cmd *cobra.Command) {
 	//TODO if downstream building supports to set downstream image, we could use this flag
 	// to set agent image on building phase
 	flags.StringVar(&o.AgentImage, "agent-image", o.AgentImage, "The image of addon agent.")
-	flags.StringVar(&o.ANPRouteHost, "anp-route-host", o.ANPRouteHost, "The host of anp route.")
+	flags.StringVar(&o.ANPPublicHost, "anp-public-host", o.ANPPublicHost, "The public host of anp.")
+	flags.IntVar(&o.ANPPublicPort, "anp-public-port", o.ANPPublicPort, "The public port of anp.")
 }
 
 func (o *AddOnControllerOptions) Complete(kubeClient kubernetes.Interface) error {
@@ -83,7 +85,7 @@ func (o *AddOnControllerOptions) RunControllerManager(ctx context.Context, contr
 
 	certRotationController := controllers.NewCertRotationController(
 		o.Namespace,
-		o.ANPRouteHost,
+		o.ANPPublicHost,
 		kubeClient,
 		kubeInformer.Core().V1().Secrets(),
 		kubeInformer.Core().V1().ConfigMaps(),
@@ -98,7 +100,7 @@ func (o *AddOnControllerOptions) RunControllerManager(ctx context.Context, contr
 		return err
 	}
 
-	err = mgr.AddAgent(addon.NewClusterProxyAddOnAgent(kubeClient, controllerContext.EventRecorder, o.AgentImage))
+	err = mgr.AddAgent(addon.NewClusterProxyAddOnAgent(kubeClient, controllerContext.EventRecorder, o.AgentImage, o.ANPPublicHost, o.ANPPublicPort))
 	if err != nil {
 		return err
 	}

@@ -49,14 +49,18 @@ type clusterProxyAddOnAgent struct {
 	recorder      events.Recorder
 	hubKubeClient kubernetes.Interface
 	agentImage    string
+	anpPublicHost string
+	anpPublicPort int
 }
 
 // NewClusterProxyAddOnAgent returns an instance of clusterProxyAddOnAgent
-func NewClusterProxyAddOnAgent(hubKubeClient *kubernetes.Clientset, recorder events.Recorder, agentImage string) *clusterProxyAddOnAgent {
+func NewClusterProxyAddOnAgent(hubKubeClient *kubernetes.Clientset, recorder events.Recorder, agentImage, anpPublicHost string, anpPublicPort int) *clusterProxyAddOnAgent {
 	return &clusterProxyAddOnAgent{
 		recorder:      recorder,
 		hubKubeClient: hubKubeClient,
 		agentImage:    agentImage,
+		anpPublicHost: anpPublicHost,
+		anpPublicPort: anpPublicPort,
 	}
 }
 
@@ -77,7 +81,7 @@ func (a *clusterProxyAddOnAgent) Manifests(cluster *clusterv1.ManagedCluster, ad
 		return nil, fmt.Errorf("no data in ca-bundle-crt configmap: %v", caConfigMap)
 	}
 
-	host, port := a.getRoutePublicAddress()
+	host, port := a.anpPublicHost, a.anpPublicPort
 
 	mainfestConfig := struct {
 		// addon
@@ -207,12 +211,6 @@ func (a *clusterProxyAddOnAgent) csrConfigurations(cluster *clusterv1.ManagedClu
 			Groups: agent.DefaultGroups(cluster.Name, config.ADDON),
 		},
 	})
-}
-
-func (a *clusterProxyAddOnAgent) getRoutePublicAddress() (host string, port int) {
-	// TODO the proority should be: evn_var -> route_on_hub -> service_on_hub -> default_value
-	// right now for test sake, we use default_local_value
-	return "host.docker.internal", 8091
 }
 
 func (a *clusterProxyAddOnAgent) sign(csr *certificatesv1.CertificateSigningRequest) []byte {
