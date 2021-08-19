@@ -3,11 +3,15 @@ package hub
 import (
 	"bufio"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -23,6 +27,8 @@ const (
 
 	FlagServerCert = "server-cert"
 	FlagServerKey  = "server-key"
+
+	FlagRootCA = "root-ca"
 )
 
 const (
@@ -40,7 +46,7 @@ func newUserServer(proxyUdsName string) (*userServer, error) {
 	}, nil
 }
 
-func (u *userServer) proxyHandler(wr http.ResponseWriter, req *http.Request) {
+func (u *userServer) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	// parse clusterID from current requestURL
 	clusterID, kubeAPIPath, err := parseRequestURL(req.RequestURI)
 	if err != nil {
@@ -162,6 +168,11 @@ func NewUserProxy() *cobra.Command {
 				klog.Errorf("failed to read args %s: %v", FlagServerKey, err)
 				return
 			}
+			cafile, err := cmd.Flags().GetString(FlagRootCA)
+			if err != nil {
+				klog.Errorf("failed to read args %s: %v", FlagRootCA, err)
+				return
+			}
 
 			us, err := newUserServer(proxyUds)
 			if err != nil {
@@ -169,9 +180,21 @@ func NewUserProxy() *cobra.Command {
 				return
 			}
 
-			http.HandleFunc("/", us.proxyHandler)
-			if err := http.ListenAndServeTLS("localhost:"+strconv.Itoa(serverPort), serverCert, serverKey, nil); err != nil {
-				klog.Errorf("listen to http err: %v", err)
+			rootCAs, err := getCACertPool(cafile)
+			if err != nil {
+				klog.Errorf("get ca cert pool failed: %v", err)
+			}
+
+			server := http.Server{
+				Addr:    "localhost:" + strconv.Itoa(serverPort),
+				Handler: us,
+				TLSConfig: &tls.Config{
+					RootCAs: rootCAs,
+				},
+			}
+
+			if err := server.ListenAndServeTLS(serverCert, serverKey); err != nil {
+				klog.Errorf("listen and serve failed: %v", err)
 			}
 		},
 	}
@@ -180,6 +203,21 @@ func NewUserProxy() *cobra.Command {
 	cmd.Flags().String(FlagProxyUds, ProxyUds, "the UDS name to connect to")
 	cmd.Flags().String(FlagServerCert, "", "Secure communication with this cert.")
 	cmd.Flags().String(FlagServerKey, "", "Secure communication with this key.")
+	cmd.Flags().String(FlagRootCA, "", "Root CA of server auth")
 
 	return cmd
+}
+
+// getCACertPool loads CA certificates to pool
+func getCACertPool(caFile string) (*x509.CertPool, error) {
+	certPool := x509.NewCertPool()
+	caCert, err := ioutil.ReadFile(filepath.Clean(caFile))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read CA cert %s: %v", caFile, err)
+	}
+	ok := certPool.AppendCertsFromPEM(caCert)
+	if !ok {
+		return nil, fmt.Errorf("failed to append CA cert to the cert pool")
+	}
+	return certPool, nil
 }

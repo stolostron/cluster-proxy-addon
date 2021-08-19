@@ -19,6 +19,7 @@ const (
 	caBundleConfigmap      = "cluster-proxy-ca-bundle"
 	clusterProxyAddOnSecet = "cluster-proxy-addon-serving-cert"
 	signerNamePrefix       = "cluster-proxy-addon"
+	commonName             = "cluster-proxy-addon"
 )
 
 // Follow the rules below to set the value of SigningCertValidity/TargetCertValidity/ResyncInterval:
@@ -37,7 +38,8 @@ type certRotationController struct {
 
 func NewCertRotationController(
 	namespace string,
-	anpRouteHost string,
+	anpPublicHost string,
+	userPublicHost string,
 	kubeClient kubernetes.Interface,
 	secretInformer corev1informers.SecretInformer,
 	configMapInformer corev1informers.ConfigMapInformer,
@@ -64,7 +66,7 @@ func NewCertRotationController(
 				Namespace:     namespace,
 				Name:          clusterProxyAddOnSecet,
 				Validity:      TargetCertValidity,
-				HostNames:     []string{anpRouteHost},
+				HostNames:     []string{commonName, anpPublicHost, userPublicHost},
 				Lister:        secretInformer.Lister(),
 				Client:        kubeClient.CoreV1(),
 				EventRecorder: recorder,

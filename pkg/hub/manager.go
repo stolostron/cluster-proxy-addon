@@ -26,10 +26,11 @@ const (
 )
 
 type AddOnControllerOptions struct {
-	AgentImage    string
-	ANPPublicHost string
-	ANPPublicPort int
-	Namespace     string
+	AgentImage     string
+	UserPublicHost string
+	ANPPublicHost  string
+	ANPPublicPort  int
+	Namespace      string
 }
 
 func NewAddOnControllerOptions() *AddOnControllerOptions {
@@ -41,8 +42,9 @@ func (o *AddOnControllerOptions) AddFlags(cmd *cobra.Command) {
 	//TODO if downstream building supports to set downstream image, we could use this flag
 	// to set agent image on building phase
 	flags.StringVar(&o.AgentImage, "agent-image", o.AgentImage, "The image of addon agent.")
-	flags.StringVar(&o.ANPPublicHost, "anp-public-host", o.ANPPublicHost, "The public host of anp.")
-	flags.IntVar(&o.ANPPublicPort, "anp-public-port", o.ANPPublicPort, "The public port of anp.")
+	flags.StringVar(&o.ANPPublicHost, "anp-public-host", o.ANPPublicHost, "The public host of anp-proxy-server.")
+	flags.IntVar(&o.ANPPublicPort, "anp-public-port", o.ANPPublicPort, "The public port of anp-proxy-server.")
+	flags.StringVar(&o.UserPublicHost, "user-public-host", o.UserPublicHost, "The public host of user-server.")
 }
 
 func (o *AddOnControllerOptions) Complete(kubeClient kubernetes.Interface) error {
@@ -86,6 +88,7 @@ func (o *AddOnControllerOptions) RunControllerManager(ctx context.Context, contr
 	certRotationController := controllers.NewCertRotationController(
 		o.Namespace,
 		o.ANPPublicHost,
+		o.UserPublicHost,
 		kubeClient,
 		kubeInformer.Core().V1().Secrets(),
 		kubeInformer.Core().V1().ConfigMaps(),
