@@ -21,18 +21,18 @@ const (
 func proxyHandler(wr http.ResponseWriter, req *http.Request) {
 	apiserverURL, err := url.Parse(KUBE_APISERVER_ADDRESS)
 	if err != nil {
-		klog.Errorf("KUBE_APISERVER_ADDRESS parse error: %s", err.Error())
 		http.Error(wr, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	dump, err := httputil.DumpRequest(req, true)
-	if err != nil {
-		klog.Errorf("KUBE_APISERVER_ADDRESS parse error: %s", err.Error())
-		http.Error(wr, err.Error(), http.StatusBadRequest)
-		return
+	if klog.V(4).Enabled() {
+		dump, err := httputil.DumpRequest(req, true)
+		if err != nil {
+			http.Error(wr, err.Error(), http.StatusBadRequest)
+			return
+		}
+		klog.V(4).Infof("request:\n %s", string(dump))
 	}
-	klog.V(4).Infof("request:\n %s", string(dump))
 
 	// change the proto from http to https
 	req.Proto = "https"
