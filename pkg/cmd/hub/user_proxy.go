@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -17,30 +16,51 @@ import (
 	"k8s.io/klog/v2"
 )
 
-const (
-	FlagServerPort = "server-port"
-	FlagProxyUds   = "proxy-uds"
-
-	FlagServerCert = "server-cert"
-	FlagServerKey  = "server-key"
-)
-
-const (
-	ClusterRequestProto = "http"
-	ProxyUds            = "/tmp/cluster-proxy-socket"
-)
-
-type userServer struct {
+type userProxyHandler struct {
 	proxyUdsName string
+	serverCert   string
+	serverKey    string
+	serverPort   int
 }
 
-func newUserServer(proxyUdsName string) (*userServer, error) {
-	return &userServer{
-		proxyUdsName: proxyUdsName,
-	}, nil
+func (u *userProxyHandler) AddFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+	flags.StringVar(&u.proxyUdsName, "proxy-uds", u.proxyUdsName, "the UDS name to connect to")
+	flags.StringVar(&u.serverCert, "server-cert", u.serverCert, "Secure communication with this cert")
+	flags.StringVar(&u.serverKey, "server-key", u.serverKey, "Secure communication with this key")
+	flags.IntVar(&u.serverPort, "server-port", u.serverPort, "handle user request using this port")
 }
 
-func (u *userServer) proxyHandler(wr http.ResponseWriter, req *http.Request) {
+func (u *userProxyHandler) Validate() error {
+	if u.proxyUdsName == "" {
+		return fmt.Errorf("The proxy-uds is required")
+	}
+
+	if u.serverCert == "" {
+		return fmt.Errorf("The server-cert is required")
+	}
+
+	if u.serverKey == "" {
+		return fmt.Errorf("The server-key is required")
+	}
+
+	if u.serverPort == 0 {
+		return fmt.Errorf("The server-port is required")
+	}
+
+	return nil
+}
+
+func (u *userProxyHandler) Handler(wr http.ResponseWriter, req *http.Request) {
+	if klog.V(4).Enabled() {
+		dump, err := httputil.DumpRequest(req, true)
+		if err != nil {
+			http.Error(wr, err.Error(), http.StatusBadRequest)
+			return
+		}
+		klog.V(4).Infof("request:\n%s", string(dump))
+	}
+
 	// parse clusterID from current requestURL
 	clusterID, kubeAPIPath, err := parseRequestURL(req.RequestURI)
 	if err != nil {
@@ -50,7 +70,7 @@ func (u *userServer) proxyHandler(wr http.ResponseWriter, req *http.Request) {
 	}
 
 	// restruct new apiserverURL
-	target := fmt.Sprintf("%s://%s:%d", ClusterRequestProto, clusterID, config.APISERVER_PROXY_PORT)
+	target := fmt.Sprintf("http://%s:%d", clusterID, config.APISERVER_PROXY_PORT)
 	apiserverURL, err := url.Parse(target)
 	if err != nil {
 		klog.Errorf("parse restructed URL: %v", err)
@@ -138,48 +158,28 @@ func parseRequestURL(requestURL string) (clusterID string, kubeAPIPath string, e
 }
 
 func NewUserProxy() *cobra.Command {
+	proxy := &userProxyHandler{
+		proxyUdsName: "/tmp/cluster-proxy-socket",
+		serverPort:   9092,
+	}
+
 	cmd := &cobra.Command{
 		Use:   "user-server",
 		Short: "user-server",
 		Run: func(cmd *cobra.Command, args []string) {
-			serverPort, err := cmd.Flags().GetInt(FlagServerPort)
-			if err != nil {
-				klog.Errorf("failed to read args %s: %v", FlagServerPort, err)
-				return
-			}
-			proxyUds, err := cmd.Flags().GetString(FlagProxyUds)
-			if err != nil {
-				klog.Errorf("failed to read args %s: %v", FlagProxyUds, err)
-				return
-			}
-			serverCert, err := cmd.Flags().GetString(FlagServerCert)
-			if err != nil {
-				klog.Errorf("failed to read args %s: %v", FlagServerCert, err)
-				return
-			}
-			serverKey, err := cmd.Flags().GetString(FlagServerKey)
-			if err != nil {
-				klog.Errorf("failed to read args %s: %v", FlagServerKey, err)
-				return
+			if err := proxy.Validate(); err != nil {
+				klog.Fatal(err)
 			}
 
-			us, err := newUserServer(proxyUds)
+			klog.Infof("start https server on %d", proxy.serverPort)
+			http.HandleFunc("/", proxy.Handler)
+			err := http.ListenAndServeTLS(fmt.Sprintf(":%d", proxy.serverPort), proxy.serverCert, proxy.serverKey, nil)
 			if err != nil {
-				klog.Errorf("new user server failed: %v", err)
-				return
-			}
-
-			http.HandleFunc("/", us.proxyHandler)
-			if err := http.ListenAndServeTLS("localhost:"+strconv.Itoa(serverPort), serverCert, serverKey, nil); err != nil {
-				klog.Errorf("listen to http err: %v", err)
+				klog.Fatalf("failed to start user proxy server: %v", err)
 			}
 		},
 	}
 
-	cmd.Flags().Int(FlagServerPort, 8080, "handle user request using this port")
-	cmd.Flags().String(FlagProxyUds, ProxyUds, "the UDS name to connect to")
-	cmd.Flags().String(FlagServerCert, "", "Secure communication with this cert.")
-	cmd.Flags().String(FlagServerKey, "", "Secure communication with this key.")
-
+	proxy.AddFlags(cmd)
 	return cmd
 }
