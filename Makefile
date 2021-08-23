@@ -16,8 +16,10 @@ include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 IMAGE ?= cluster-proxy-addon
 IMAGE_REGISTRY ?= quay.io/open-cluster-management
 
-# ANP code directory
-ANP_DIR ?= dependencymagnet/anp
+# ANP source code
+ANP_NAME ?= apiserver-network-proxy
+ANP_VERSION ?= 0.0.24
+ANP_SRC_CODE ?= dependencymagnet/${ANP_NAME}/${ANP_VERSION}.tar.gz
 
 # Add packages to do unit test
 GO_TEST_PACKAGES :=./pkg/...
@@ -36,11 +38,13 @@ build-all: build build-anp
 .PHONY: build-all
 
 build-anp:
-	git submodule init
-	git submodule update
-	cd $(ANP_DIR) && git checkout v0.0.22
-	cd $(ANP_DIR) && go build -o bin/proxy-agent cmd/agent/main.go
-	cd $(ANP_DIR) && go build -o bin/proxy-server cmd/server/main.go
+	mkdir -p $(PERMANENT_TMP)
+	cp $(ANP_SRC_CODE) $(PERMANENT_TMP)/$(ANP_NAME).tar.gz
+	cd $(PERMANENT_TMP) && tar -xf $(ANP_NAME).tar.gz
+	cd $(PERMANENT_TMP)/$(ANP_NAME)-$(ANP_VERSION) && go build -mod=mod -o proxy-agent cmd/agent/main.go
+	cd $(PERMANENT_TMP)/$(ANP_NAME)-$(ANP_VERSION) && go build -mod=mod -o proxy-server cmd/server/main.go
+	mv $(PERMANENT_TMP)/$(ANP_NAME)-$(ANP_VERSION)/proxy-agent ./
+	mv $(PERMANENT_TMP)/$(ANP_NAME)-$(ANP_VERSION)/proxy-server ./
 .PHONY: build-anp
 
 # TODO include ./test/integration-test.mk
