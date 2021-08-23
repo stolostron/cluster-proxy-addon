@@ -5,7 +5,8 @@
 *.so
 *.dylib
 /cluster-proxy
-/bin
+/proxy-agent
+/proxy-server
 
 # Test binary, built with `go test -c`
 *.test
