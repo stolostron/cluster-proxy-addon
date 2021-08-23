@@ -52,7 +52,7 @@ func newClusterProxyCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(hub.NewController())
-	cmd.AddCommand(hub.NewUserProxy())
+	cmd.AddCommand(hub.NewUserServer())
 	cmd.AddCommand(spoke.NewAgent())
 	cmd.AddCommand(spoke.NewAPIServerProxy())
 	return cmd
