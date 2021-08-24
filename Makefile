@@ -41,10 +41,13 @@ build-anp:
 	mkdir -p $(PERMANENT_TMP)
 	cp $(ANP_SRC_CODE) $(PERMANENT_TMP)/$(ANP_NAME).tar.gz
 	cd $(PERMANENT_TMP) && tar -xf $(ANP_NAME).tar.gz
-	cd $(PERMANENT_TMP)/$(ANP_NAME)-$(ANP_VERSION) && go build -mod=mod -o proxy-agent cmd/agent/main.go
-	cd $(PERMANENT_TMP)/$(ANP_NAME)-$(ANP_VERSION) && go build -mod=mod -o proxy-server cmd/server/main.go
-	mv $(PERMANENT_TMP)/$(ANP_NAME)-$(ANP_VERSION)/proxy-agent ./
-	mv $(PERMANENT_TMP)/$(ANP_NAME)-$(ANP_VERSION)/proxy-server ./
+	cp -r vendor $(PERMANENT_TMP)/$(ANP_NAME)
+	cd $(PERMANENT_TMP)/$(ANP_NAME) && mv modules.txt.bak vendor/modules.txt
+	cd $(PERMANENT_TMP)/$(ANP_NAME) && rm -rf vendor/sigs.k8s.io/apiserver-network-proxy
+	cd $(PERMANENT_TMP)/$(ANP_NAME) && go build -o proxy-agent cmd/agent/main.go
+	cd $(PERMANENT_TMP)/$(ANP_NAME) && go build -o proxy-server cmd/server/main.go
+	mv $(PERMANENT_TMP)/$(ANP_NAME)/proxy-agent ./
+	mv $(PERMANENT_TMP)/$(ANP_NAME)/proxy-server ./
 .PHONY: build-anp
 
 # TODO include ./test/integration-test.mk
