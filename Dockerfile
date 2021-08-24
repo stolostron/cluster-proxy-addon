@@ -4,7 +4,6 @@ WORKDIR /go/src/github.com/open-cluster-management/cluster-proxy-addon
 
 COPY . .
 
-ENV GO_PACKAGE github.com/open-cluster-management/cluster-proxy-addon
 RUN make build-all
 
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
