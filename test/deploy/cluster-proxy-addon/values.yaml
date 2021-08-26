@@ -1,0 +1,26 @@
+org: open-cluster-management
+
+global:
+  pullPolicy: Always
+  imageOverrides:
+    cluster_proxy_addon: ""
+
+arch:
+  - amd64
+  - ppc64le
+  - s390x
+
+pullSecret: null
+
+hubconfig:
+  nodeSelector: null
+  replicaCount: 1
+  proxyConfigs: {}
+
+cluster_basedomain: ""
+
+anp_route:
+  name: cluster-proxy-anp
+
+user_route:
+  name: cluster-proxy-user

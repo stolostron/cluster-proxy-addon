@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "cluster-proxy-addon.name" . }}-anp
+  labels:
+    app: {{ template "cluster-proxy-addon.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/name: {{ template "cluster-proxy-addon.name" . }}
+    chart: {{ template "cluster-proxy-addon.chart" . }}
+    component: cluster-proxy-addon-anp-server
+    helm.sh/chart: {{ template "cluster-proxy-addon.chart" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+spec:
+  ports:
+  - name: anp-port
+    port: 9091
+  selector:
+    app: {{ template "cluster-proxy-addon.name" . }}
+    component: cluster-proxy-addon-anp-server
+    release: {{ .Release.Name }}

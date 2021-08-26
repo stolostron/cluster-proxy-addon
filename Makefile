@@ -51,3 +51,39 @@ build-anp:
 .PHONY: build-anp
 
 # TODO include ./test/integration-test.mk
+build-e2e: 
+	go test -c ./test/e2e
+
+deploy-ocm:
+	install-ocm.sh
+
+HELM?=_output/linux-amd64/helm
+KUBECTL?=kubectl
+
+IMAGE=quay.io/open-cluster-management/cluster-proxy-addon:latest
+IMAGE_PULL_POLICY=Always
+CLUSTER_BASE_DOMAIN=
+
+ensure-helm:
+	mkdir -p _output
+	cd _output && curl -s -f -L https://get.helm.sh/helm-v3.2.4-linux-amd64.tar.gz -o helm-v3.2.4-linux-amd64.tar.gz
+	cd _output && tar -xvzf helm-v3.2.4-linux-amd64.tar.gz
+.PHONY: setup
+
+lint: ensure-helm
+	$(HELM) lint stable/cluster-proxy-addon
+.PHONY: lint
+
+deploy-cluster-proxy: ensure-helm
+	$(KUBECTL) get ns open-cluster-management ; if [ $$? -ne 0 ] ; then $(KUBECTL) create ns open-cluster-management ; fi
+	$(HELM) install -n open-cluster-management cluster-proxy-addon test/deploy/cluster-proxy-addon \
+	--set global.pullPolicy="$(IMAGE_PULL_POLICY)" \
+	--set global.imageOverrides.cluster_proxy_addon="$(IMAGE)" \
+	--set cluster_basedomain="$(CLUSTER_BASE_DOMAIN)" 
+.PHONY: deploy-cluster-proxy
+
+test-e2e: build-e2e deploy-ocm deploy-cluster-proxy
+	./e2e.test -test.v -ginkgo.v
+
+clean-e2e:
+# TODO: delete all stuff in open-cluster-management and open-cluster-management-agent-addon

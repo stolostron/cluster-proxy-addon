@@ -1,0 +1,132 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: {{ template "cluster-proxy-addon.fullname" . }}-controller
+  labels:
+    app: {{ template "cluster-proxy-addon.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/name: {{ template "cluster-proxy-addon.name" . }}
+    chart: {{ template "cluster-proxy-addon.chart" . }}
+    component: cluster-proxy-addon-controller
+    helm.sh/chart: {{ template "cluster-proxy-addon.chart" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.hubconfig.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "cluster-proxy-addon.name" . }}
+      release: {{ .Release.Name }}
+      component: cluster-proxy-addon-controller
+  template:
+    metadata:
+      labels:
+        app: {{ template "cluster-proxy-addon.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/name: {{ template "cluster-proxy-addon.name" . }}
+        chart: {{ template "cluster-proxy-addon.chart" . }}
+        component: cluster-proxy-addon-controller
+        helm.sh/chart: {{ template "cluster-proxy-addon.chart" . }}
+        heritage: {{ .Release.Service }}
+        ocm-antiaffinity-selector: cluster-proxy-addon-controller
+        release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ template "cluster-proxy-addon.fullname" . }}
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      securityContext:
+        runAsNonRoot: true
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                {{- range .Values.arch }}
+                - {{ . }}
+                {{- end }}
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 70
+            podAffinityTerm:
+              topologyKey: topology.kubernetes.io/zone
+              labelSelector:
+                matchExpressions:
+                - key: ocm-antiaffinity-selector
+                  operator: In
+                  values:
+                  - cluster-proxy-addon-controller
+          - weight: 35
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: ocm-antiaffinity-selector
+                  operator: In
+                  values:
+                  - cluster-proxy-addon-controller
+      tolerations:
+        - key: dedicated
+          operator: Exists
+          effect: NoSchedule
+        - effect: NoSchedule 
+          key: node-role.kubernetes.io/infra 
+          operator: Exists
+      containers:
+      - name: cluster-proxy
+        image: {{ .Values.global.imageOverrides.cluster_proxy_addon }}
+        imagePullPolicy: {{ .Values.global.pullPolicy }}
+        args:
+          - "/cluster-proxy"
+          - "controller"
+          - "--anp-public-host={{ template "cluster-proxy-addon.anpPublicHost" . }}"
+          - "--anp-public-port={{ template "cluster-proxy-addon.anpPublicPort" . }}"
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            scheme: HTTPS
+            port: 8443
+          initialDelaySeconds: 2
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            scheme: HTTPS
+            port: 8443
+          initialDelaySeconds: 2
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+        {{- if .Values.hubconfig.proxyConfigs }}
+          - name: HTTP_PROXY
+            value: {{ .Values.hubconfig.proxyConfigs.HTTP_PROXY }}
+          - name: HTTPS_PROXY
+            value: {{ .Values.hubconfig.proxyConfigs.HTTPS_PROXY }}
+          - name: NO_PROXY
+            value: {{ .Values.hubconfig.proxyConfigs.NO_PROXY }}
+        {{- end }}
+      {{- if .Values.pullSecret }}
+      imagePullSecrets:
+      - name: {{ .Values.pullSecret }}
+      {{- end }}
+      {{- with .Values.hubconfig.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+      {{- end }}

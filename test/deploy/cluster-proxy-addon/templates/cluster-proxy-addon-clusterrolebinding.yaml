@@ -1,0 +1,23 @@
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Values.org }}:{{ .Release.Name }}:clusterrolebinding
+  labels:
+    app: {{ template "cluster-proxy-addon.name" . }}
+    chart: {{ template "cluster-proxy-addon.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/name: {{ template "cluster-proxy-addon.name" . }}
+    helm.sh/chart: {{ template "cluster-proxy-addon.chart" . }}
+    component: clusterrolebinding
+subjects:
+- kind: ServiceAccount
+  name: {{ template "cluster-proxy-addon.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ .Values.org }}:{{ .Release.Name }}:clusterrole
+  apiGroup: rbac.authorization.k8s.io
