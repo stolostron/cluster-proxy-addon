@@ -30,3 +30,11 @@ test-integration: ensure-kubebuilder-tools
 	go test -c ./test/integration
 	./integration.test -ginkgo.slowSpecThreshold=15 -ginkgo.v -ginkgo.failFast
 .PHONY: test-integration
+
+# e2e
+build-e2e: 
+	go test -c ./test/e2e
+
+deploy-ocm:
+	install-ocm.sh
+

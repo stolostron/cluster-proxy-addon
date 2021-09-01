@@ -50,4 +50,23 @@ build-anp:
 	mv $(PERMANENT_TMP)/$(ANP_NAME)/proxy-server ./
 .PHONY: build-anp
 
-# TODO include ./test/integration-test.mk
+# e2e
+build-e2e: 
+	go test -c ./test/e2e
+.PHONY: build-e2e
+
+deploy-ocm:
+	test/install-ocm.sh
+.PHONY: deploy-ocm
+
+deploy-addon-for-e2e:
+	test/install-addon.sh
+.PHONY: deploy-addon-for-e2e
+
+clean-addon-for-e2e:
+	test/uninstall-addon.sh
+.PHONY: clean-addon-for-e2e
+
+test-e2e: deploy-ocm deploy-addon-for-e2e build-e2e
+	./e2e.test -test.v -ginkgo.v
+.PHONY: test-e2e
