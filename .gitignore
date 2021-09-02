@@ -4,9 +4,12 @@
 *.dll
 *.so
 *.dylib
+.DS_Store
 /cluster-proxy
 /proxy-agent
 /proxy-server
+/registration-operator
+/cluster-proxy-addon-chart
 
 # Test binary, built with `go test -c`
 *.test
