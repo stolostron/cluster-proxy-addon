@@ -44,8 +44,8 @@ build-anp:
 	cp -r vendor $(PERMANENT_TMP)/$(ANP_NAME)
 	cd $(PERMANENT_TMP)/$(ANP_NAME) && mv modules.txt.bak vendor/modules.txt
 	cd $(PERMANENT_TMP)/$(ANP_NAME) && rm -rf vendor/sigs.k8s.io/apiserver-network-proxy
-	cd $(PERMANENT_TMP)/$(ANP_NAME) && go build -o proxy-agent cmd/agent/main.go
-	cd $(PERMANENT_TMP)/$(ANP_NAME) && go build -o proxy-server cmd/server/main.go
+	cd $(PERMANENT_TMP)/$(ANP_NAME) && go build -mod=readonly -o proxy-agent cmd/agent/main.go
+	cd $(PERMANENT_TMP)/$(ANP_NAME) && go build -mod=readonly -o proxy-server cmd/server/main.go
 	mv $(PERMANENT_TMP)/$(ANP_NAME)/proxy-agent ./
 	mv $(PERMANENT_TMP)/$(ANP_NAME)/proxy-server ./
 .PHONY: build-anp

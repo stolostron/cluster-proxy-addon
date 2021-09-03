@@ -11,17 +11,15 @@ require (
 	github.com/openshift/library-go v0.0.0-20210609150209-1c980926414c
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
-	k8s.io/api v0.21.1
-	k8s.io/apimachinery v0.21.1
-	k8s.io/client-go v0.21.1
-	k8s.io/component-base v0.21.1
-	k8s.io/klog/v2 v2.8.0
+	k8s.io/api v0.22.1
+	k8s.io/apimachinery v0.22.1
+	k8s.io/apiserver v0.22.1 // indirect
+	k8s.io/client-go v0.22.1
+	k8s.io/component-base v0.22.1
+	k8s.io/klog/v2 v2.9.0
 	open-cluster-management.io/addon-framework v0.0.0-20210803032803-58eac513499e
 	open-cluster-management.io/api v0.0.0-20210804091127-340467ff6239
 	open-cluster-management.io/registration-operator v0.4.0
 )
 
-replace (
-	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.1 // ensure compatible between controller-runtime and kube-openapi
-	open-cluster-management.io/registration-operator v0.4.0 => github.com/open-cluster-management-io/registration-operator v0.4.0
-)
+replace open-cluster-management.io/registration-operator v0.4.0 => github.com/open-cluster-management-io/registration-operator v0.4.0
