@@ -23,6 +23,7 @@ ANP_SRC_CODE ?= dependencymagnet/${ANP_NAME}/${ANP_VERSION}.tar.gz
 
 # Add packages to do unit test
 GO_TEST_PACKAGES :=./pkg/...
+KUBECTL ?= kubectl
 
 # This will call a macro called "build-image" which will generate image specific targets based on the parameters:
 # $0 - macro name
@@ -68,5 +69,5 @@ clean-addon-for-e2e:
 .PHONY: clean-addon-for-e2e
 
 test-e2e: deploy-ocm deploy-addon-for-e2e build-e2e
-	./e2e.test -test.v -ginkgo.v
+	export CLUSTER_BASE_DOMAIN=$(shell $(KUBECTL) get ingress.config.openshift.io cluster -o=jsonpath='{.spec.domain}') && ./e2e.test -test.v -ginkgo.v
 .PHONY: test-e2e

@@ -17,8 +17,7 @@ cd cluster-proxy-addon-chart || {
 }
 
 echo "############  Deploy cluster-proxy-addon"
-CLUSTER_BASE_DOMAIN=$($KUBECTL get ingress.config.openshift.io cluster -o=jsonpath='{.spec.domain}')  
-make deploy
+export CLUSTER_BASE_DOMAIN=$($KUBECTL get ingress.config.openshift.io cluster -o=jsonpath='{.spec.domain}') && echo $CLUSTER_BASE_DOMAIN && make -e deploy
 if [ $? -ne 0 ]; then
     echo "############ Failed to deploy"
     exit 1

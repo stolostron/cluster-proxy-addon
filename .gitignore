@@ -8,8 +8,8 @@
 /cluster-proxy
 /proxy-agent
 /proxy-server
-/registration-operator
-/cluster-proxy-addon-chart
+registration-operator/
+cluster-proxy-addon-chart/
 
 # Test binary, built with `go test -c`
 *.test
