@@ -13,7 +13,6 @@ import (
 	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
@@ -215,11 +214,9 @@ func prepareAddon() {
 			InstallNamespace: managedClusterInstallNamespace,
 		},
 	}, metav1.CreateOptions{})
-	if err != nil && err.(*errors.StatusError).ErrStatus.Reason != metav1.StatusReasonAlreadyExists {
-		Expect(err).To(BeNil())
-	}
+	Expect(err).To(BeNil())
 
-	By("Craete open-cluster-manaegment-agent-addon namespace")
+	By("Create open-cluster-manaegment-agent-addon namespace")
 	_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Namespace",
@@ -229,9 +226,7 @@ func prepareAddon() {
 			Name: managedClusterInstallNamespace,
 		},
 	}, metav1.CreateOptions{})
-	if err != nil && err.(*errors.StatusError).ErrStatus.Reason != metav1.StatusReasonAlreadyExists {
-		Expect(err).To(BeNil())
-	}
+	Expect(err).To(BeNil())
 
 	By("Check resources are running")
 	Eventually(func() error {
@@ -280,9 +275,7 @@ func prepareTestServiceAccount() {
 			Namespace: hubInstallNamespace,
 		},
 	}, metav1.CreateOptions{})
-	if err != nil && err.(*errors.StatusError).ErrStatus.Reason != metav1.StatusReasonAlreadyExists {
-		Expect(err).To(BeNil())
-	}
+	Expect(err).To(BeNil())
 
 	By("Create a role")
 	_, err = kubeClient.RbacV1().Roles(hubInstallNamespace).Create(context.Background(), &v1.Role{
@@ -307,9 +300,7 @@ func prepareTestServiceAccount() {
 			},
 		},
 	}, metav1.CreateOptions{})
-	if err != nil && err.(*errors.StatusError).ErrStatus.Reason != metav1.StatusReasonAlreadyExists {
-		Expect(err).To(BeNil())
-	}
+	Expect(err).To(BeNil())
 
 	By("Create a rolebinding")
 	_, err = kubeClient.RbacV1().RoleBindings(hubInstallNamespace).Create(context.Background(), &v1.RoleBinding{
@@ -329,9 +320,7 @@ func prepareTestServiceAccount() {
 			},
 		},
 	}, metav1.CreateOptions{})
-	if err != nil && err.(*errors.StatusError).ErrStatus.Reason != metav1.StatusReasonAlreadyExists {
-		Expect(err).To(BeNil())
-	}
+	Expect(err).To(BeNil())
 }
 
 func preparePodFortest() {
@@ -424,7 +413,6 @@ func prepareClusterProxyClient() {
 }
 
 var _ = AfterSuite(func() {
-	var err error
-	err = kubeClient.CoreV1().ConfigMaps(hubInstallNamespace).Delete(context.Background(), "cluster-proxy-test", metav1.DeleteOptions{})
+	err := kubeClient.CoreV1().ConfigMaps(hubInstallNamespace).Delete(context.Background(), "cluster-proxy-test", metav1.DeleteOptions{})
 	Expect(err).To(BeNil())
 })

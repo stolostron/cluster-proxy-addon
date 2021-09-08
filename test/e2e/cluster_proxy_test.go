@@ -14,7 +14,7 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
-var _ = Describe("Get pods through Cluster-Proxy", func() {
+var _ = Describe("Requests through Cluster-Proxy", func() {
 	Describe("Get pods", func() {
 		Context("URL is vailid", func() {
 			It("should return pods information", func() {
@@ -39,7 +39,7 @@ var _ = Describe("Get pods through Cluster-Proxy", func() {
 		})
 
 		Context("URL is valid, but using unauth token", func() {
-			It("should return forbidden", func() {
+			It("should return unauth", func() {
 				_, err := clusterProxyUnAuthClient.CoreV1().Pods(hubInstallNamespace).List(context.Background(), v1.ListOptions{})
 				Expect(err).ToNot(BeNil())
 				Expect(errors.IsUnauthorized(err)).To(Equal(true))
@@ -48,7 +48,7 @@ var _ = Describe("Get pods through Cluster-Proxy", func() {
 	})
 
 	Describe("Get Logs of a pod", func() {
-		It("shoudl return logs information", func() {
+		It("should return logs information", func() {
 			req := clusterProxyKubeClient.CoreV1().Pods(hubInstallNamespace).GetLogs(podName, &corev1.PodLogOptions{})
 			podlogs, err := req.Stream(context.Background())
 			Expect(err).To(BeNil())
