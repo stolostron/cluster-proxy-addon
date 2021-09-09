@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"github.com/open-cluster-management/cluster-proxy-addon/pkg/cmd/configchecker"
 	"github.com/open-cluster-management/cluster-proxy-addon/pkg/cmd/hub"
 	"github.com/open-cluster-management/cluster-proxy-addon/pkg/cmd/spoke"
 
@@ -55,5 +56,7 @@ func newClusterProxyCommand() *cobra.Command {
 	cmd.AddCommand(hub.NewUserServer())
 	cmd.AddCommand(spoke.NewAgent())
 	cmd.AddCommand(spoke.NewAPIServerProxy())
+	cmd.AddCommand(configchecker.NewConfigCheckerServer())
+
 	return cmd
 }

@@ -1024,15 +1024,17 @@ k8s.io/utils/net
 k8s.io/utils/path
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# open-cluster-management.io/addon-framework v0.0.0-20210803032803-58eac513499e
+# open-cluster-management.io/addon-framework v0.0.0-20210909134218-e6e993872bb1
 ## explicit
 open-cluster-management.io/addon-framework/pkg/addonmanager
 open-cluster-management.io/addon-framework/pkg/addonmanager/constants
 open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/agentdeploy
 open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/certificate
+open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/clustermanagement
 open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/registration
 open-cluster-management.io/addon-framework/pkg/agent
 open-cluster-management.io/addon-framework/pkg/lease
+open-cluster-management.io/addon-framework/pkg/utils
 # open-cluster-management.io/api v0.0.0-20210804091127-340467ff6239
 ## explicit
 open-cluster-management.io/api/addon/v1alpha1
