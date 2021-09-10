@@ -87,7 +87,6 @@ spec:
       containers:
         - name: cluster-proxy-agent
           image: {{ .Image }}
-          
           args:
             - "/cluster-proxy"
             - "agent"
@@ -136,15 +135,30 @@ spec:
       containers:
         - name: apiserver-proxy
           image: {{ .Image }}
-          
           command:
             - "/cluster-proxy"
             - "apiserver-proxy"
           ports:
             - containerPort: {{ .APIServerProxyPort }}
+        - name: proxy-agent-config-checker
+          image: {{ .Image }}
+          command:
+            - "/cluster-proxy"
+            - "config-checker"
+            - "--name=proxy-agent-config-checker"
+            - "--port=8180"
+            - "--files=/ca/ca-bundle.crt"
+            - "--files=/tls/tls.crt"
+            - "--files=/tls/tls.key"
+          volumeMounts:
+            - name: tls-vol
+              mountPath: /tls
+              readOnly: true
+            - name: ca-vol
+              mountPath: /ca
+              readOnly: true
         - name: proxy-agent
           image: {{ .Image }}
-          
           command:
             - "/proxy-agent"
             - "--proxy-server-host={{ .ProxyServerHost }}"
@@ -156,10 +170,10 @@ spec:
           livenessProbe:
             httpGet:
               scheme: HTTP
-              port: 8093
-              path: /healthz
-            initialDelaySeconds: 15
-            timeoutSeconds: 15
+              port: 8180
+              path: "/proxy-agent-config-checker"
+            initialDelaySeconds: 60
+            timeoutSeconds: 60
           volumeMounts:
             - name: tls-vol
               mountPath: /tls
