@@ -13,6 +13,7 @@ import (
 	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
@@ -226,7 +227,9 @@ func prepareAddon() {
 			Name: managedClusterInstallNamespace,
 		},
 	}, metav1.CreateOptions{})
-	Expect(err).To(BeNil())
+	if !errors.IsAlreadyExists(err) {
+		Expect(err).To(BeNil())
+	}
 
 	By("Check resources are running")
 	Eventually(func() error {

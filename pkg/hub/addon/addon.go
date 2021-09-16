@@ -72,7 +72,7 @@ func (a *clusterProxyAddOnAgent) Manifests(cluster *clusterv1.ManagedCluster, ad
 	}
 
 	// TODO add trigger in addon-framework later.
-	caConfigMap, err := a.hubKubeClient.CoreV1().ConfigMaps(config.HUB_NAMESPACE).Get(context.TODO(), config.CaBundleConfigmap, metav1.GetOptions{})
+	caConfigMap, err := a.hubKubeClient.CoreV1().ConfigMaps(helpers.GetCurrentNamespace(config.HUB_NAMESPACE)).Get(context.TODO(), config.CaBundleConfigmap, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +216,7 @@ func (a *clusterProxyAddOnAgent) csrConfigurations(cluster *clusterv1.ManagedClu
 func (a *clusterProxyAddOnAgent) sign(csr *certificatesv1.CertificateSigningRequest) []byte {
 	// We consider approved csr no need to do verify again
 	klog.Infof("CSRSign, agent: %s", config.ADDON_AGENT_NAME)
-	s, err := a.hubKubeClient.CoreV1().Secrets(config.HUB_NAMESPACE).Get(context.TODO(), config.SignerSecret, metav1.GetOptions{})
+	s, err := a.hubKubeClient.CoreV1().Secrets(helpers.GetCurrentNamespace(config.HUB_NAMESPACE)).Get(context.TODO(), config.SignerSecret, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("sign csr failed: %v", err)
 		return []byte{}
