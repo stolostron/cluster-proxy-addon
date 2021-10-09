@@ -11,6 +11,7 @@ import (
 	"github.com/open-cluster-management/cluster-proxy-addon/pkg/helpers"
 	"github.com/open-cluster-management/cluster-proxy-addon/pkg/hub/addon"
 	"github.com/open-cluster-management/cluster-proxy-addon/pkg/hub/controllers"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers/imageregistry"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager"
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
@@ -77,6 +78,11 @@ func (o *AddOnControllerOptions) RunControllerManager(ctx context.Context, contr
 		return err
 	}
 
+	imageRegistryClient, err := imageregistry.NewDynamicClient(controllerContext.KubeConfig)
+	if err != nil {
+		return err
+	}
+
 	if err := o.Complete(kubeClient); err != nil {
 		return err
 	}
@@ -100,7 +106,8 @@ func (o *AddOnControllerOptions) RunControllerManager(ctx context.Context, contr
 		return err
 	}
 
-	err = mgr.AddAgent(addon.NewClusterProxyAddOnAgent(kubeClient, controllerContext.EventRecorder, o.AgentImage, o.ANPPublicHost, o.ANPPublicPort))
+	err = mgr.AddAgent(addon.NewClusterProxyAddOnAgent(
+		kubeClient, imageRegistryClient, controllerContext.EventRecorder, o.AgentImage, o.ANPPublicHost, o.ANPPublicPort))
 	if err != nil {
 		return err
 	}
