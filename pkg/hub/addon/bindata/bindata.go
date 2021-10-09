@@ -358,7 +358,7 @@ roleRef:
   name: cluster-proxy-addon
 subjects:
   - kind: ServiceAccount
-    name: cluster-proxy-addon-sa
+    name: cluster-proxy-agent-sa
 `)
 
 func pkgHubAddonManifestsRolebindingYamlBytes() ([]byte, error) {
