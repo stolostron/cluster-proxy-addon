@@ -11,6 +11,7 @@ import (
 	"github.com/open-cluster-management/cluster-proxy-addon/pkg/config"
 	"github.com/open-cluster-management/cluster-proxy-addon/pkg/helpers"
 	bindata "github.com/open-cluster-management/cluster-proxy-addon/pkg/hub/addon/bindata"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers/imageregistry"
 	"github.com/openshift/library-go/pkg/assets"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -46,21 +47,27 @@ func init() {
 }
 
 type clusterProxyAddOnAgent struct {
-	recorder      events.Recorder
-	hubKubeClient kubernetes.Interface
-	agentImage    string
-	anpPublicHost string
-	anpPublicPort int
+	recorder            events.Recorder
+	hubKubeClient       kubernetes.Interface
+	imageRegistryClient imageregistry.Client
+	agentImage          string
+	anpPublicHost       string
+	anpPublicPort       int
 }
 
 // NewClusterProxyAddOnAgent returns an instance of clusterProxyAddOnAgent
-func NewClusterProxyAddOnAgent(hubKubeClient *kubernetes.Clientset, recorder events.Recorder, agentImage, anpPublicHost string, anpPublicPort int) *clusterProxyAddOnAgent {
+func NewClusterProxyAddOnAgent(
+	hubKubeClient *kubernetes.Clientset,
+	imageRegistryClient imageregistry.Client,
+	recorder events.Recorder,
+	agentImage, anpPublicHost string, anpPublicPort int) *clusterProxyAddOnAgent {
 	return &clusterProxyAddOnAgent{
-		recorder:      recorder,
-		hubKubeClient: hubKubeClient,
-		agentImage:    agentImage,
-		anpPublicHost: anpPublicHost,
-		anpPublicPort: anpPublicPort,
+		recorder:            recorder,
+		hubKubeClient:       hubKubeClient,
+		imageRegistryClient: imageRegistryClient,
+		agentImage:          agentImage,
+		anpPublicHost:       anpPublicHost,
+		anpPublicPort:       anpPublicPort,
 	}
 }
 
@@ -81,7 +88,10 @@ func (a *clusterProxyAddOnAgent) Manifests(cluster *clusterv1.ManagedCluster, ad
 		return nil, fmt.Errorf("no data in ca-bundle-crt configmap: %v", caConfigMap)
 	}
 
-	host, port := a.anpPublicHost, a.anpPublicPort
+	agentImage, err := a.imageRegistryClient.Cluster(cluster.Name).ImageOverride(a.agentImage)
+	if err != nil {
+		return nil, err
+	}
 
 	mainfestConfig := struct {
 		// addon
@@ -100,12 +110,12 @@ func (a *clusterProxyAddOnAgent) Manifests(cluster *clusterv1.ManagedCluster, ad
 		KubeConfigSecret:      fmt.Sprintf("%s-hub-kubeconfig", addon.Name),
 		AddonInstallNamespace: installNamespace,
 		ClusterName:           cluster.Name,
-		Image:                 a.agentImage,
+		Image:                 agentImage,
 
 		// anp
 		APIServerProxyPort: config.APISERVER_PROXY_PORT,
-		ProxyServerHost:    host,
-		ProxyServerPort:    port,
+		ProxyServerHost:    a.anpPublicHost,
+		ProxyServerPort:    a.anpPublicPort,
 		CABundleCrt:        []byte(caBundleCrt),
 	}
 

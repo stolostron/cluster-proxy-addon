@@ -381,6 +381,8 @@ apiVersion: v1
 metadata:
   name: cluster-proxy-agent-sa
   namespace: {{ .AddonInstallNamespace }}
+imagePullSecrets:
+- name: open-cluster-management-image-pull-credentials
 `)
 
 func pkgHubAddonManifestsServiceaccountYamlBytes() ([]byte, error) {
