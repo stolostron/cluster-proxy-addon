@@ -174,6 +174,7 @@ spec:
               path: "/proxy-agent-config-checker"
             initialDelaySeconds: 60
             timeoutSeconds: 60
+            failureThreshold: 1
           volumeMounts:
             - name: tls-vol
               mountPath: /tls
