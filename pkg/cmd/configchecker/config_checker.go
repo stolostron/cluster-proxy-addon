@@ -27,6 +27,8 @@ func NewConfigCheckerServer() *cobra.Command {
 				klog.Errorf("create config checker failed, %v", err)
 			}
 
+			cc.SetReload(true)
+
 			// use checker in a handler
 			http.HandleFunc("/"+cc.Name(), func(rw http.ResponseWriter, r *http.Request) {
 				if err := cc.Check(r); err != nil {
