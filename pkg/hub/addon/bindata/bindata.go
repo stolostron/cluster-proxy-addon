@@ -128,6 +128,7 @@ spec:
       labels:
         app: anp-agent
     spec:
+      serviceAccountName: cluster-proxy-agent-sa
       hostAliases:
         - ip: "127.0.0.1"
           hostnames:
