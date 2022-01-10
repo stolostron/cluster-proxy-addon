@@ -10,14 +10,14 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/open-cluster-management/cluster-proxy-addon/pkg/cmd/configchecker"
-	"github.com/open-cluster-management/cluster-proxy-addon/pkg/cmd/hub"
-	"github.com/open-cluster-management/cluster-proxy-addon/pkg/cmd/spoke"
+	"github.com/stolostron/cluster-proxy-addon/pkg/cmd/configchecker"
+	"github.com/stolostron/cluster-proxy-addon/pkg/cmd/hub"
+	"github.com/stolostron/cluster-proxy-addon/pkg/cmd/spoke"
 
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 
-	"github.com/open-cluster-management/cluster-proxy-addon/pkg/version"
+	"github.com/stolostron/cluster-proxy-addon/pkg/version"
 )
 
 func main() {

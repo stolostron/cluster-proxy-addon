@@ -8,7 +8,7 @@ KUBECTL=${KUBECTL:-kubectl}
 rm -rf cluster-proxy-addon-chart
 
 echo "############  Cloning cluster-proxy-addon-chart"
-git clone https://github.com/open-cluster-management/cluster-proxy-addon-chart.git
+git clone https://github.com/stolostron/cluster-proxy-addon-chart.git
 
 
 cd cluster-proxy-addon-chart || {

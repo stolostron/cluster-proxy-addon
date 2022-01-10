@@ -1,4 +1,4 @@
-module github.com/open-cluster-management/cluster-proxy-addon
+module github.com/stolostron/cluster-proxy-addon
 
 go 1.16
 
@@ -7,11 +7,11 @@ require (
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
-	github.com/open-cluster-management/multicloud-operators-foundation v1.0.0-2021-09-15-06-57-52
 	github.com/openshift/build-machinery-go v0.0.0-20210806203541-4ea9b6da3a37
 	github.com/openshift/library-go v0.0.0-20210916194400-ae21aab32431
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
+	github.com/stolostron/multicloud-operators-foundation v1.0.0-2021-10-26-20-16-14.0.20220110023249-172fb944faa9
 	k8s.io/api v0.22.1
 	k8s.io/apimachinery v0.22.1
 	k8s.io/client-go v12.0.0+incompatible
@@ -25,7 +25,6 @@ replace github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.5.1 //
 
 replace k8s.io/apiserver => k8s.io/apiserver v0.22.1
 
-// required by multicloud-operators-foundation
 replace (
 	github.com/kubevirt/terraform-provider-kubevirt => github.com/nirarg/terraform-provider-kubevirt v0.0.0-20201222125919-101cee051ed3
 	github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20200715132148-0f91f62a41fe

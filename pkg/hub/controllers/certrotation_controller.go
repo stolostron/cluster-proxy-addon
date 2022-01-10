@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/open-cluster-management/cluster-proxy-addon/pkg/certrotation"
+	"github.com/stolostron/cluster-proxy-addon/pkg/certrotation"
 
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"

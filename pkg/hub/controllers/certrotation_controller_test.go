@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/open-cluster-management/cluster-proxy-addon/pkg/certrotation"
-	testinghelper "github.com/open-cluster-management/cluster-proxy-addon/pkg/helpers/testing"
+	"github.com/stolostron/cluster-proxy-addon/pkg/certrotation"
+	testinghelper "github.com/stolostron/cluster-proxy-addon/pkg/helpers/testing"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
