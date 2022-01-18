@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/open-cluster-management/cluster-proxy-addon/pkg/helpers"
+	"github.com/stolostron/cluster-proxy-addon/pkg/helpers"
 	"open-cluster-management.io/addon-framework/pkg/lease"
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"

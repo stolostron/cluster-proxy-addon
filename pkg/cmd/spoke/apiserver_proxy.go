@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/open-cluster-management/cluster-proxy-addon/pkg/config"
 	"github.com/spf13/cobra"
+	"github.com/stolostron/cluster-proxy-addon/pkg/config"
 	"k8s.io/klog/v2"
 )
 
