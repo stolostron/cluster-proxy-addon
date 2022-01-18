@@ -14,7 +14,7 @@ include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 
 # Image URL to use all building/pushing image targets;
 IMAGE ?= cluster-proxy-addon
-IMAGE_REGISTRY ?= quay.io/open-cluster-management
+IMAGE_REGISTRY ?= quay.io/stolostron
 
 # ANP source code
 ANP_NAME ?= apiserver-network-proxy

@@ -24,7 +24,7 @@ const (
 	AGENT_NAMESPACE          = "open-cluster-management-agent-addon"
 )
 
-const DefaultImage = "quay.io/open-cluster-management/cluster-proxy-addon:latest"
+const DefaultImage = "quay.io/stolostron/cluster-proxy-addon:latest"
 
 const (
 	AgentNamespaceFile = "namespace.yaml"

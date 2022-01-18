@@ -10,10 +10,10 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/open-cluster-management/cluster-proxy-addon/pkg/config"
-	"github.com/open-cluster-management/cluster-proxy-addon/pkg/helpers"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/spf13/cobra"
+	"github.com/stolostron/cluster-proxy-addon/pkg/config"
+	"github.com/stolostron/cluster-proxy-addon/pkg/helpers"
 	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"

@@ -1,11 +1,11 @@
 package hub
 
 import (
-	"github.com/open-cluster-management/cluster-proxy-addon/pkg/hub"
+	"github.com/stolostron/cluster-proxy-addon/pkg/hub"
 
-	"github.com/open-cluster-management/cluster-proxy-addon/pkg/version"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/spf13/cobra"
+	"github.com/stolostron/cluster-proxy-addon/pkg/version"
 )
 
 func NewUserServer() *cobra.Command {
