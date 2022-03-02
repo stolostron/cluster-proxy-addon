@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers/imageregistry"
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/stolostron/cluster-proxy-addon/pkg/config"
 	"github.com/stolostron/cluster-proxy-addon/pkg/helpers"
 	bindata "github.com/stolostron/cluster-proxy-addon/pkg/hub/addon/bindata"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers/imageregistry"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/sets"
