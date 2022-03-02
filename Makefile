@@ -15,6 +15,7 @@ include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 # Image URL to use all building/pushing image targets;
 IMAGE ?= cluster-proxy-addon
 IMAGE_REGISTRY ?= quay.io/stolostron
+IMAGE_TAG ?= latest
 
 # ANP source code
 ANP_NAME ?= apiserver-network-proxy
@@ -24,6 +25,8 @@ ANP_SRC_CODE ?= dependencymagnet/${ANP_NAME}/${ANP_VERSION}.tar.gz
 # Add packages to do unit test
 GO_TEST_PACKAGES :=./pkg/...
 KUBECTL ?= kubectl
+
+CLUSTER_PROXY_ADDON_IMAGE?=${IMAGE_REGISTRY}/${IMAGE}:${IMAGE_TAG}
 
 # This will call a macro called "build-image" which will generate image specific targets based on the parameters:
 # $0 - macro name
@@ -61,7 +64,7 @@ deploy-ocm:
 .PHONY: deploy-ocm
 
 deploy-addon-for-e2e:
-	test/install-addon.sh
+	test/install-addon.sh $(CLUSTER_PROXY_ADDON_IMAGE) 
 .PHONY: deploy-addon-for-e2e
 
 clean-addon-for-e2e:
