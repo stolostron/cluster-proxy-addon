@@ -10,9 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/stolostron/cluster-proxy-addon/pkg/cmd/configchecker"
 	"github.com/stolostron/cluster-proxy-addon/pkg/cmd/hub"
-	"github.com/stolostron/cluster-proxy-addon/pkg/cmd/spoke"
 
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
@@ -52,11 +50,13 @@ func newClusterProxyCommand() *cobra.Command {
 		cmd.Version = v
 	}
 
-	cmd.AddCommand(hub.NewController())
 	cmd.AddCommand(hub.NewUserServer())
-	cmd.AddCommand(spoke.NewAgent())
-	cmd.AddCommand(spoke.NewAPIServerProxy())
-	cmd.AddCommand(configchecker.NewConfigCheckerServer())
+	// Using cluster-proxy as the base, so no needs for the following controllers.
+	// TODO： remove the following code.
+	// cmd.AddCommand(hub.NewController())
+	// cmd.AddCommand(spoke.NewAgent())
+	// cmd.AddCommand(spoke.NewAPIServerProxy())
+	// cmd.AddCommand(configchecker.NewConfigCheckerServer())
 
 	return cmd
 }

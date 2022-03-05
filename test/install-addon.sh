@@ -5,6 +5,11 @@ set -o pipefail
 
 KUBECTL=${KUBECTL:-kubectl}
 
+rm -rf cluster-proxy
+
+echo "############  Apply CRD"
+$KUBECTL apply -f https://raw.githubusercontent.com/stolostron/cluster-proxy/main/charts/cluster-proxy/crds/managedproxyconfigurations.yaml
+
 rm -rf cluster-proxy-addon-chart
 
 echo "############  Cloning cluster-proxy-addon-chart"

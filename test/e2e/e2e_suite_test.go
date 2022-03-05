@@ -13,7 +13,6 @@ import (
 	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
@@ -22,7 +21,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
 
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
@@ -45,11 +43,10 @@ var (
 )
 
 const (
-	eventuallyTimeout              = 300 // seconds
-	eventuallyInterval             = 6   // seconds
-	hubInstallNamespace            = "open-cluster-management"
-	managedClusterInstallNamespace = "open-cluster-management-agent-addon"
-	addonName                      = "cluster-proxy"
+	eventuallyTimeout              = 600 // seconds
+	eventuallyInterval             = 30  // seconds
+	hubInstallNamespace            = "open-cluster-management-addon"
+	managedClusterInstallNamespace = "open-cluster-management-cluster-proxy"
 	serviceAccountName             = "cluster-proxy-test"
 )
 
@@ -201,54 +198,22 @@ func prepareOCM() {
 func prepareAddon() {
 	var err error
 
-	By("Create addon on hub")
-	_, err = hubAddOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.Background(), &addonv1alpha1.ManagedClusterAddOn{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ManagedClusterAddon",
-			APIVersion: "addon.open-cluster-management.io/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      addonName,
-			Namespace: managedClusterName,
-		},
-		Spec: addonv1alpha1.ManagedClusterAddOnSpec{
-			InstallNamespace: managedClusterInstallNamespace,
-		},
-	}, metav1.CreateOptions{})
-	Expect(err).To(BeNil())
-
-	By("Create open-cluster-manaegment-agent-addon namespace")
-	_, err = kubeClient.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Namespace",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: managedClusterInstallNamespace,
-		},
-	}, metav1.CreateOptions{})
-	if !errors.IsAlreadyExists(err) {
-		Expect(err).To(BeNil())
-	}
-
 	By("Check resources are running")
 	Eventually(func() error {
-		// deployment on hub is running
-		anpServer, err := kubeClient.AppsV1().Deployments(hubInstallNamespace).Get(context.Background(), "cluster-proxy-addon-anp-server", metav1.GetOptions{})
-		if err != nil {
-			return err
+		// deployments on hub is running
+		deployments := []string{
+			"cluster-proxy-addon-manager",
+			"cluster-proxy-addon-user",
+			"cluster-proxy",
 		}
-
-		if anpServer.Status.AvailableReplicas != 1 {
-			return fmt.Errorf("available replicas for %s should be 1", "anp-server")
-		}
-
-		controller, err := kubeClient.AppsV1().Deployments(hubInstallNamespace).Get(context.Background(), "cluster-proxy-addon-controller", metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-		if controller.Status.AvailableReplicas != 1 {
-			return fmt.Errorf("available replicas for %s should be 1", "controller")
+		for _, deployment := range deployments {
+			d, err := kubeClient.AppsV1().Deployments(hubInstallNamespace).Get(context.Background(), deployment, metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
+			if d.Status.AvailableReplicas != 1 {
+				return fmt.Errorf("available replicas for %s should be 1", deployment)
+			}
 		}
 
 		// service on hub exist
@@ -258,12 +223,12 @@ func prepareAddon() {
 		}
 
 		// deployment on managedcluster is running
-		anpAgent, err := kubeClient.AppsV1().Deployments(managedClusterInstallNamespace).Get(context.Background(), "anp-agent", metav1.GetOptions{})
+		anpAgent, err := kubeClient.AppsV1().Deployments(managedClusterInstallNamespace).Get(context.Background(), "cluster-proxy-proxy-agent", metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
-		if anpAgent.Status.AvailableReplicas != 1 {
-			return fmt.Errorf("available replicas for %s should be 1", "anp-agent")
+		if anpAgent.Status.AvailableReplicas < 1 {
+			return fmt.Errorf("available replicas for %s should be more than 1, but get %d", "anp-agent", anpAgent.Status.AvailableReplicas)
 		}
 
 		return nil
@@ -330,7 +295,7 @@ func preparePodFortest() {
 	pods, err := kubeClient.CoreV1().Pods(hubInstallNamespace).List(context.Background(), metav1.ListOptions{})
 	Expect(err).To(BeNil())
 	for _, pod := range pods.Items {
-		if !strings.Contains(pod.Name, "cluster-proxy-addon-controller") {
+		if !strings.Contains(pod.Name, "cluster-proxy-addon-manager") {
 			continue
 		}
 		podName = pod.Name
