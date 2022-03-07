@@ -324,6 +324,20 @@ func prepareClusterProxyClient() {
 		break
 	}
 
+	// TODO: just for test logging
+	By("Get CA certificates")
+	kubeconfigContent, err := os.ReadFile(kubeconfig)
+	Expect(err).To(BeNil())
+	By("KubeconfigContent:")
+	By(string(kubeconfigContent))
+
+	userServerSecert, err := kubeClient.CoreV1().Secrets(hubInstallNamespace).Get(context.Background(), "cluster-proxy-user-serving-cert", metav1.GetOptions{})
+	Expect(err).To(BeNil())
+	userServerCert, ok := userServerSecert.Data["tls.crt"]
+	Expect(ok).To(Equal(true))
+	By("UserServerCert:")
+	By(string(userServerCert))
+
 	By("Create kubeclient using cluster-proxy kubeconfig")
 	err = func() error {
 		var err error
@@ -332,6 +346,8 @@ func prepareClusterProxyClient() {
 		if err != nil {
 			return err
 		}
+
+		By(fmt.Sprintf("CA Data: %s", string(clusterProxyCfg.CAData)))
 
 		clusterProxyCfg.TLSClientConfig.CertData = nil
 		clusterProxyCfg.TLSClientConfig.KeyData = nil
@@ -383,4 +399,5 @@ func prepareClusterProxyClient() {
 var _ = AfterSuite(func() {
 	err := kubeClient.CoreV1().ConfigMaps(hubInstallNamespace).Delete(context.Background(), "cluster-proxy-test", metav1.DeleteOptions{})
 	Expect(err).To(BeNil())
+	Expect(true).To(BeFalse()) // fail the e2e to see the logs
 })
