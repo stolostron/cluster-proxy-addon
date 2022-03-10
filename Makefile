@@ -19,7 +19,7 @@ IMAGE_TAG ?= latest
 
 # ANP source code
 ANP_NAME ?= apiserver-network-proxy
-ANP_VERSION ?= 0.0.24
+ANP_VERSION ?= 0.0.27
 ANP_SRC_CODE ?= dependencymagnet/${ANP_NAME}/${ANP_VERSION}.tar.gz
 
 # Add packages to do unit test
@@ -45,9 +45,6 @@ build-anp:
 	mkdir -p $(PERMANENT_TMP)
 	cp $(ANP_SRC_CODE) $(PERMANENT_TMP)/$(ANP_NAME).tar.gz
 	cd $(PERMANENT_TMP) && tar -xf $(ANP_NAME).tar.gz
-	cp -r vendor $(PERMANENT_TMP)/$(ANP_NAME)
-	cd $(PERMANENT_TMP)/$(ANP_NAME) && mv modules.txt.bak vendor/modules.txt
-	cd $(PERMANENT_TMP)/$(ANP_NAME) && rm -rf vendor/sigs.k8s.io/apiserver-network-proxy
 	cd $(PERMANENT_TMP)/$(ANP_NAME) && go build -o proxy-agent cmd/agent/main.go
 	cd $(PERMANENT_TMP)/$(ANP_NAME) && go build -o proxy-server cmd/server/main.go
 	mv $(PERMANENT_TMP)/$(ANP_NAME)/proxy-agent ./
