@@ -51,15 +51,6 @@ type NetworkSpec struct {
 	// not allowed to be set.
 	// +optional
 	ExternalIP *ExternalIPConfig `json:"externalIP,omitempty"`
-
-	// The port range allowed for Services of type NodePort.
-	// If not specified, the default of 30000-32767 will be used.
-	// Such Services without a NodePort specified will have one
-	// automatically allocated from this range.
-	// This parameter can be updated after the cluster is
-	// installed.
-	// +kubebuilder:validation:Pattern=`^([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])-([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$`
-	ServiceNodePortRange string `json:"serviceNodePortRange,omitempty"`
 }
 
 // NetworkStatus is the current network configuration.
@@ -84,11 +75,9 @@ type ClusterNetworkEntry struct {
 	// The complete block for pod IPs.
 	CIDR string `json:"cidr"`
 
-	// The size (prefix) of block to allocate to each node. If this
-	// field is not used by the plugin, it can be left unset.
+	// The size (prefix) of block to allocate to each node.
 	// +kubebuilder:validation:Minimum=0
-	// +optional
-	HostPrefix uint32 `json:"hostPrefix,omitempty"`
+	HostPrefix uint32 `json:"hostPrefix"`
 }
 
 // ExternalIPConfig specifies some IP blocks relevant for the ExternalIP field

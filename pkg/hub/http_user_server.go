@@ -17,8 +17,10 @@ import (
 	"google.golang.org/grpc"
 	grpccredentials "google.golang.org/grpc/credentials"
 	"k8s.io/klog/v2"
+	addonutils "open-cluster-management.io/addon-framework/pkg/utils"
 	konnectivity "sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client"
 	"sigs.k8s.io/apiserver-network-proxy/pkg/util"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 )
 
 type HTTPUserServer struct {
@@ -69,7 +71,7 @@ func NewHTTPUserServer() *HTTPUserServer {
 }
 
 func (k *HTTPUserServer) init(ctx context.Context) error {
-	proxyTLSCfg, err := util.GetClientTLSConfig(k.proxyCACertPath, k.proxyCertPath, k.proxyKeyPath, k.proxyServerHost, nil)
+	proxyTLSCfg, err := util.GetClientTLSConfig(k.proxyCACertPath, k.proxyCertPath, k.proxyKeyPath, k.proxyServerHost)
 	if err != nil {
 		return err
 	}
@@ -185,6 +187,13 @@ func (k *HTTPUserServer) Run(ctx context.Context, controllerContext *controllerc
 		klog.Fatal(err)
 	}
 
+	cc, err := addonutils.NewConfigChecker("http-user-server", k.proxyCACertPath, k.proxyCertPath, k.proxyKeyPath, k.serverCert, k.serverKey)
+	if err != nil {
+		klog.Fatal(err)
+	}
+
+	go ServeHealthProbes(ctx.Done(), ":8000", cc.Check)
+
 	klog.Infof("start https server on %d", k.serverPort)
 	http.HandleFunc("/", k.handler)
 
@@ -194,4 +203,42 @@ func (k *HTTPUserServer) Run(ctx context.Context, controllerContext *controllerc
 	}
 
 	return nil
+}
+
+func ServeHealthProbes(stop <-chan struct{}, healthProbeBindAddress string, configCheck healthz.Checker) {
+	healthzHandler := &healthz.Handler{Checks: map[string]healthz.Checker{
+		"healthz-ping": healthz.Ping,
+		"configz-ping": configCheck,
+	}}
+	readyzHandler := &healthz.Handler{Checks: map[string]healthz.Checker{
+		"readyz-ping": healthz.Ping,
+	}}
+
+	mux := http.NewServeMux()
+	mux.Handle("/readyz", http.StripPrefix("/readyz", readyzHandler))
+	mux.Handle("/healthz", http.StripPrefix("/healthz", healthzHandler))
+
+	server := http.Server{
+		Handler: mux,
+	}
+
+	ln, err := net.Listen("tcp", healthProbeBindAddress)
+	if err != nil {
+		klog.Errorf("error listening on %s: %v", ":8000", err)
+		return
+	}
+
+	klog.Infof("heath probes server is running...")
+	// Run server
+	go func() {
+		if err := server.Serve(ln); err != nil && err != http.ErrServerClosed {
+			klog.Fatal(err)
+		}
+	}()
+
+	// Shutdown the server when stop is closed
+	<-stop
+	if err := server.Shutdown(context.Background()); err != nil {
+		klog.Fatal(err)
+	}
 }

@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: cluster-proxy-ca-bundle
-  namespace: {{ .AddonInstallNamespace }}
-data:
-  ca-bundle.crt: | 
-    {{ .CABundleCrt | indent 4 }}
