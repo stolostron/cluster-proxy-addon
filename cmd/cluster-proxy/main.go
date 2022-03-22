@@ -51,12 +51,6 @@ func newClusterProxyCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(hub.NewUserServer())
-	// Using cluster-proxy as the base, so no needs for the following controllers.
-	// TODO： remove the following code.
-	// cmd.AddCommand(hub.NewController())
-	// cmd.AddCommand(spoke.NewAgent())
-	// cmd.AddCommand(spoke.NewAPIServerProxy())
-	// cmd.AddCommand(configchecker.NewConfigCheckerServer())
 
 	return cmd
 }

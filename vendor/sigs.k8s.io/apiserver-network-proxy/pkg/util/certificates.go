@@ -21,13 +21,11 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
-	"path/filepath"
 )
 
-// getCACertPool loads CA certificates to pool
 func getCACertPool(caFile string) (*x509.CertPool, error) {
 	certPool := x509.NewCertPool()
-	caCert, err := ioutil.ReadFile(filepath.Clean(caFile))
+	caCert, err := ioutil.ReadFile(caFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read CA cert %s: %v", caFile, err)
 	}
@@ -39,21 +37,17 @@ func getCACertPool(caFile string) (*x509.CertPool, error) {
 }
 
 // GetClientTLSConfig returns tlsConfig based on x509 certs
-func GetClientTLSConfig(caFile, certFile, keyFile, serverName string, protos []string) (*tls.Config, error) {
+func GetClientTLSConfig(caFile, certFile, keyFile, serverName string) (*tls.Config, error) {
 	certPool, err := getCACertPool(caFile)
 	if err != nil {
 		return nil, err
 	}
 
-	tlsConfig := &tls.Config{
-		RootCAs:    certPool,
-		MinVersion: tls.VersionTLS12,
-	}
-	if len(protos) != 0 {
-		tlsConfig.NextProtos = protos
-	}
 	if certFile == "" && keyFile == "" {
 		// return TLS config based on CA only
+		tlsConfig := &tls.Config{
+			RootCAs: certPool,
+		}
 		return tlsConfig, nil
 	}
 
@@ -62,7 +56,10 @@ func GetClientTLSConfig(caFile, certFile, keyFile, serverName string, protos []s
 		return nil, fmt.Errorf("failed to load X509 key pair %s and %s: %v", certFile, keyFile, err)
 	}
 
-	tlsConfig.ServerName = serverName
-	tlsConfig.Certificates = []tls.Certificate{cert}
+	tlsConfig := &tls.Config{
+		ServerName:   serverName,
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      certPool,
+	}
 	return tlsConfig, nil
 }
