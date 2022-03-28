@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	grpccredentials "google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
 	"k8s.io/klog/v2"
 	addonutils "open-cluster-management.io/addon-framework/pkg/utils"
 	konnectivity "sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client"
@@ -81,6 +82,9 @@ func (k *HTTPUserServer) init(ctx context.Context) error {
 			ctx,
 			net.JoinHostPort(k.proxyServerHost, strconv.Itoa(k.proxyServerPort)),
 			grpc.WithTransportCredentials(grpccredentials.NewTLS(proxyTLSCfg)),
+			grpc.WithKeepaliveParams(keepalive.ClientParameters{
+				Time: time.Second * 5,
+			}),
 		)
 		if err != nil {
 			return nil, err
