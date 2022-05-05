@@ -46,7 +46,7 @@ const (
 	eventuallyTimeout              = 600 // seconds
 	eventuallyInterval             = 30  // seconds
 	hubInstallNamespace            = "open-cluster-management-addon"
-	managedClusterInstallNamespace = "open-cluster-management-cluster-proxy"
+	managedClusterInstallNamespace = "open-cluster-management-agent-addon"
 	serviceAccountName             = "cluster-proxy-test"
 )
 
@@ -211,8 +211,8 @@ func prepareAddon() {
 			if err != nil {
 				return err
 			}
-			if d.Status.AvailableReplicas != 1 {
-				return fmt.Errorf("available replicas for %s should be 1", deployment)
+			if d.Status.AvailableReplicas < 1 {
+				return fmt.Errorf("available replicas for %s should >= 1, but get %d", deployment, d.Status.Replicas)
 			}
 		}
 
