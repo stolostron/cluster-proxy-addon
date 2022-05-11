@@ -196,7 +196,7 @@ func (k *HTTPUserServer) Run(ctx context.Context, controllerContext *controllerc
 		klog.Fatal(err)
 	}
 
-	go ServeHealthProbes(ctx.Done(), ":8000", cc.Check)
+	go ServeHealthProbes(ctx.Done(), ":8081", cc.Check)
 
 	klog.Infof("start https server on %d", k.serverPort)
 	http.HandleFunc("/", k.handler)
