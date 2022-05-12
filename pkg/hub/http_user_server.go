@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	grpccredentials "google.golang.org/grpc/credentials"
@@ -180,8 +179,10 @@ func parseRequestURL(requestURL string) (clusterID string, kubeAPIPath string, e
 	return
 }
 
-func (k *HTTPUserServer) Run(ctx context.Context, controllerContext *controllercmd.ControllerContext) error {
+func (k *HTTPUserServer) Run(ctx context.Context) error {
 	var err error
+
+	klog.Info("begin to run user server")
 
 	if err = k.Validate(); err != nil {
 		klog.Fatal(err)
