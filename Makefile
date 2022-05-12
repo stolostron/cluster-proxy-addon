@@ -45,14 +45,14 @@ build-anp:
 	mkdir -p $(PERMANENT_TMP)
 	cp $(ANP_SRC_CODE) $(PERMANENT_TMP)/$(ANP_NAME).tar.gz
 	cd $(PERMANENT_TMP) && tar -xf $(ANP_NAME).tar.gz
-	cd $(PERMANENT_TMP)/$(ANP_NAME) && go build -o proxy-agent cmd/agent/main.go
-	cd $(PERMANENT_TMP)/$(ANP_NAME) && go build -o proxy-server cmd/server/main.go
+	cd $(PERMANENT_TMP)/$(ANP_NAME) && CGO_ENABLED=0 go build -o proxy-agent cmd/agent/main.go
+	cd $(PERMANENT_TMP)/$(ANP_NAME) && CGO_ENABLED=0 go build -o proxy-server cmd/server/main.go
 	mv $(PERMANENT_TMP)/$(ANP_NAME)/proxy-agent ./
 	mv $(PERMANENT_TMP)/$(ANP_NAME)/proxy-server ./
 .PHONY: build-anp
 
 # e2e
-build-e2e: 
+build-e2e:
 	go test -c ./test/e2e
 .PHONY: build-e2e
 
@@ -61,7 +61,7 @@ deploy-ocm:
 .PHONY: deploy-ocm
 
 deploy-addon-for-e2e:
-	test/install-addon.sh $(CLUSTER_PROXY_ADDON_IMAGE) 
+	test/install-addon.sh $(CLUSTER_PROXY_ADDON_IMAGE)
 .PHONY: deploy-addon-for-e2e
 
 clean-addon-for-e2e:
