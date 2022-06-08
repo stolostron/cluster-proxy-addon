@@ -14,6 +14,7 @@ import (
 
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2"
 
 	"github.com/stolostron/cluster-proxy-addon/pkg/version"
 )
@@ -39,7 +40,9 @@ func newClusterProxyCommand() *cobra.Command {
 		Use:   "cluster-proxy",
 		Short: "cluster-proxy",
 		Run: func(cmd *cobra.Command, args []string) {
-			cmd.Help()
+			if err := cmd.Help(); err != nil {
+				klog.Errorf("cmd help err: %v", err)
+			}
 			os.Exit(1)
 		},
 	}
