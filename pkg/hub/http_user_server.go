@@ -154,7 +154,10 @@ func (k *HTTPUserServer) handler(wr http.ResponseWriter, req *http.Request) {
 	}
 
 	proxy.ErrorHandler = func(rw http.ResponseWriter, r *http.Request, e error) {
-		rw.Write([]byte(fmt.Sprintf("proxy to anp-proxy-server failed because %v", e)))
+		_, err := rw.Write([]byte(fmt.Sprintf("proxy to anp-proxy-server failed because %v", e)))
+		if err != nil {
+			klog.Errorf("write error: %v", err)
+		}
 		klog.Errorf("proxy to anp-proxy-server failed because %v", e)
 	}
 
