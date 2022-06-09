@@ -1,6 +1,6 @@
 module github.com/stolostron/cluster-proxy-addon
 
-go 1.17
+go 1.18
 
 require (
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
