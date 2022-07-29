@@ -10,7 +10,10 @@ This feature has 5 relevant repos:
 * [cluster-proxy](https://github.com/stolostron/cluster-proxy)
     * The main body of the addon.
     * The repo has some differences in build and deploy part with the upstream repo: [cluster-proxy](https://github.com/open-cluster-management-io/cluster-proxy) to suit the downstream needs.
+* [backplane-operator](https://github.com/stolostron/backplane-operator/tree/main/pkg/templates/charts/toggle/cluster-proxy-addon)
+    * The lastest chart changes should be made in backplane-operator template.
 * [cluster-proxy-addon-chart](https://github.com/stolostron/cluster-proxy-addon-chart)
+    * Only for release-2.5 and early version.
     * Using images from `cluster-proxy-addon` and `cluster-proxy` to deploy the addon.
     * The repo is leveraged by [multiclusterhub-operator](https://github.com/stolostron/multiclusterhub-operator) and [multiclusterhub-repo](https://github.com/stolostron/multiclusterhub-repo).
 * [release](https://github.com/openshift/release)
