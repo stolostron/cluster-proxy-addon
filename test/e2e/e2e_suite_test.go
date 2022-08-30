@@ -2,7 +2,10 @@ package e2e
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -13,6 +16,7 @@ import (
 	v1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -29,6 +33,7 @@ func TestE2E(t *testing.T) {
 var (
 	managedClusterName                                                                    string
 	kubeClient, clusterProxyKubeClient, clusterProxyWrongClient, clusterProxyUnAuthClient kubernetes.Interface
+	clusterProxyHttpClient                                                                *http.Client
 	hubAddOnClient                                                                        addonclient.Interface
 	hubClusterClient                                                                      clusterclient.Interface
 	clusterCfg                                                                            *rest.Config
@@ -82,7 +87,7 @@ var _ = BeforeSuite(func() {
 	}()
 	Expect(err).To(BeNil())
 
-	prepareAddon()
+	checkAddonStatus()
 
 	prepareTestServiceAccount()
 
@@ -91,7 +96,7 @@ var _ = BeforeSuite(func() {
 	prepareClusterProxyClient()
 })
 
-func prepareAddon() {
+func checkAddonStatus() {
 	var err error
 
 	By("Check resources are running")
@@ -139,7 +144,9 @@ func prepareTestServiceAccount() {
 			Namespace: hubInstallNamespace,
 		},
 	}, metav1.CreateOptions{})
-	Expect(err).To(BeNil())
+	if !apierrors.IsAlreadyExists(err) {
+		Expect(err).To(BeNil())
+	}
 
 	By("Create a role")
 	_, err = kubeClient.RbacV1().Roles(hubInstallNamespace).Create(context.Background(), &v1.Role{
@@ -164,7 +171,9 @@ func prepareTestServiceAccount() {
 			},
 		},
 	}, metav1.CreateOptions{})
-	Expect(err).To(BeNil())
+	if !apierrors.IsAlreadyExists(err) {
+		Expect(err).To(BeNil())
+	}
 
 	By("Create a rolebinding")
 	_, err = kubeClient.RbacV1().RoleBindings(hubInstallNamespace).Create(context.Background(), &v1.RoleBinding{
@@ -184,7 +193,9 @@ func prepareTestServiceAccount() {
 			},
 		},
 	}, metav1.CreateOptions{})
-	Expect(err).To(BeNil())
+	if !apierrors.IsAlreadyExists(err) {
+		Expect(err).To(BeNil())
+	}
 }
 
 func preparePodFortest() {
@@ -198,11 +209,17 @@ func preparePodFortest() {
 	}
 }
 
+var (
+	kubeconfig     string
+	baseDomain     string
+	userServerHost string
+)
+
 func prepareClusterProxyClient() {
 	var err error
-	kubeconfig := os.Getenv("KUBECONFIG")
-	baseDomain := os.Getenv("CLUSTER_BASE_DOMAIN")
-	userServerHost := "cluster-proxy-user." + baseDomain
+	kubeconfig = os.Getenv("KUBECONFIG")
+	baseDomain = os.Getenv("CLUSTER_BASE_DOMAIN")
+	userServerHost = "cluster-proxy-user." + baseDomain
 
 	By("Get RootCA of the cluster")
 	// get the ca is stored in configmap "kube-root-ca.crt" in the hubInstallNamespace.
@@ -237,7 +254,7 @@ func prepareClusterProxyClient() {
 		return fmt.Errorf("should containe token in secret of the serviceaccount")
 	}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 
-	By("Create kubeclient using cluster-proxy kubeconfig")
+	By("Create kubeclient using cluster-proxy kubeconfig and http client to access specified services")
 	err = func() error {
 		var err error
 		// create good client
@@ -293,12 +310,18 @@ func prepareClusterProxyClient() {
 			return err
 		}
 
+		// clusterProxyHttpClient
+		rootCAPool := x509.NewCertPool()
+		rootCAPool.AppendCertsFromPEM([]byte(rootCA))
+		clusterProxyHttpClient = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs: rootCAPool,
+				},
+			},
+		}
+
 		return nil
 	}()
 	Expect(err).To(BeNil())
 }
-
-var _ = AfterSuite(func() {
-	err := kubeClient.CoreV1().ConfigMaps(hubInstallNamespace).Delete(context.Background(), "cluster-proxy-test", metav1.DeleteOptions{})
-	Expect(err).To(BeNil())
-})

@@ -102,21 +102,30 @@ func (k *HTTPUserServer) handler(wr http.ResponseWriter, req *http.Request) {
 		klog.V(4).Infof("request:\n%s", string(dump))
 	}
 
-	// parse clusterID from current requestURL
-	clusterID, kubeAPIPath, err := parseRequestURL(req.RequestURI)
+	var targetHost, path string
+	var err error
+
+	if isProxyService(req.RequestURI) {
+		targetHost, path, err = parseServiceRequestURL(req.RequestURI)
+		if err != nil {
+			http.Error(wr, err.Error(), http.StatusBadRequest)
+			return
+		}
+	} else {
+		targetHost, path, err = parseKubeAPIServerRequestURL(req.RequestURI)
+		if err != nil {
+			http.Error(wr, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+
+	// get target host
+	targetURL, err := url.Parse(targetHost)
 	if err != nil {
 		http.Error(wr, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	target := fmt.Sprintf("https://%s", clusterID)
-	apiserverURL, err := url.Parse(target)
-	if err != nil {
-		http.Error(wr, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	// TODO: the tunnel should be reused to improve performance.
 	tunnel, err := k.getTunnel()
 	if err != nil {
 		http.Error(wr, err.Error(), http.StatusBadRequest)
@@ -133,7 +142,7 @@ func (k *HTTPUserServer) handler(wr http.ResponseWriter, req *http.Request) {
 		}
 	}()
 
-	proxy := httputil.NewSingleHostReverseProxy(apiserverURL)
+	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 	proxy.Transport = &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
 		MaxIdleConns:          100,
@@ -162,7 +171,7 @@ func (k *HTTPUserServer) handler(wr http.ResponseWriter, req *http.Request) {
 	}
 
 	// update request URL path
-	req.URL.Path = kubeAPIPath
+	req.URL.Path = path
 
 	klog.V(4).Infof("request scheme:%s; rawQuery:%s; path:%s", req.URL.Scheme, req.URL.RawQuery, req.URL.Path)
 

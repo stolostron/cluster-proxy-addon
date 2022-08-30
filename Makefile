@@ -83,7 +83,8 @@ ensure-helm:
 
 # CLUSTER_PROXY_ADDON_IMAGE is passed in by prow, represents the image of cluster-proxy-addon built with the current snapshot.
 deploy-addon-for-e2e: ensure-helm
-	$(KUBECTL) apply -f chart/cluster-proxy-addon/crds/*
+	$(KUBECTL) apply -f chart/cluster-proxy-addon/crds/managedproxyconfigurations.yaml
+	$(KUBECTL) apply -f chart/cluster-proxy-addon/crds/managedproxyserviceresolvers.yaml
 	$(HELM) install \
 	-n open-cluster-management-addon --create-namespace \
 	cluster-proxy-addon chart/cluster-proxy-addon \
@@ -94,5 +95,6 @@ deploy-addon-for-e2e: ensure-helm
 .PHONY: deploy-addon-for-e2e
 
 test-e2e: deploy-ocm deploy-addon-for-e2e build-e2e
+	$(KUBECTL) apply -f test/e2e/manifests/test-helloworld-service.yaml
 	export CLUSTER_BASE_DOMAIN=$(shell $(KUBECTL) get ingress.config.openshift.io cluster -o=jsonpath='{.spec.domain}') && ./e2e.test -test.v -ginkgo.v
 .PHONY: test-e2e

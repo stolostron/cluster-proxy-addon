@@ -3,12 +3,16 @@ package e2e
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
@@ -73,6 +77,8 @@ var _ = Describe("Requests through Cluster-Proxy", func() {
 			select {
 			case <-watch.ResultChan():
 				// this chan shoud not receive any pod event before pod created
+				err := kubeClient.CoreV1().ConfigMaps(hubInstallNamespace).Delete(context.Background(), "cluster-proxy-test", metav1.DeleteOptions{})
+				Expect(err).To(BeNil())
 			default:
 				Fail("Failed to received a pod create event")
 			}
@@ -104,6 +110,20 @@ var _ = Describe("Requests through Cluster-Proxy", func() {
 			})
 			Expect(err).To(BeNil())
 			Expect(strings.Contains(stdout.String(), "hello")).To(Equal(true))
+		})
+	})
+
+	Describe("Access Hello-World service", func() {
+		It("should return `Hello from hello-world\n`", func() {
+			targetHost := fmt.Sprintf("https://%s/%s/api/v1/namespaces/default/services/http:hello-world:8000/proxy-service/", userServerHost, managedClusterName)
+			fmt.Println("The targetHost: ", targetHost)
+			resp, err := clusterProxyHttpClient.Get(targetHost)
+			Expect(err).To(BeNil())
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			defer resp.Body.Close()
+			body, err := ioutil.ReadAll(resp.Body)
+			Expect(err).To(BeNil())
+			Expect(string(body)).To(Equal("Hello from local-cluster\n"))
 		})
 	})
 })
