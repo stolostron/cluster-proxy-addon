@@ -1,0 +1,26 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ template "cluster-proxy-addon.name" . }}-anp
+  labels:
+    app: {{ template "cluster-proxy-addon.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/name: {{ template "cluster-proxy-addon.name" . }}
+    chart: {{ template "cluster-proxy-addon.chart" . }}
+    component: cluster-proxy-addon-anp-server
+    helm.sh/chart: {{ template "cluster-proxy-addon.chart" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  annotations:
+      haproxy.router.openshift.io/timeout: 60s
+      haproxy.router.openshift.io/balance: roundrobin
+spec:
+  host: {{ template "cluster-proxy-addon.anpPublicHost" . }}
+  port:
+    targetPort: anp-port
+  tls:
+    termination: passthrough
+  to:
+    kind: Service
+    name: {{ template "cluster-proxy-addon.name" . }}-anp

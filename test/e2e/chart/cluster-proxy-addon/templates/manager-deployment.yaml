@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: cluster-proxy-addon-manager
+  labels:
+    app: {{ template "cluster-proxy-addon.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/name: {{ template "cluster-proxy-addon.name" . }}
+    chart: {{ template "cluster-proxy-addon.chart" . }}
+    component: cluster-proxy-addon-manager
+    helm.sh/chart: {{ template "cluster-proxy-addon.chart" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ template "cluster-proxy-addon.name" . }}
+      release: {{ .Release.Name }}
+      component: cluster-proxy-addon-manager
+  template:
+    metadata:
+      labels:
+        app: {{ template "cluster-proxy-addon.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        app.kubernetes.io/name: {{ template "cluster-proxy-addon.name" . }}
+        chart: {{ template "cluster-proxy-addon.chart" . }}
+        component: cluster-proxy-addon-manager
+        helm.sh/chart: {{ template "cluster-proxy-addon.chart" . }}
+        heritage: {{ .Release.Service }}
+        ocm-antiaffinity-selector: cluster-proxy-addon-manager
+        release: {{ .Release.Name }}
+    spec:
+      serviceAccount: cluster-proxy
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      securityContext:
+        runAsNonRoot: true
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                {{- range .Values.arch }}
+                - {{ . }}
+                {{- end }}
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 70
+            podAffinityTerm:
+              topologyKey: topology.kubernetes.io/zone
+              labelSelector:
+                matchExpressions:
+                - key: ocm-antiaffinity-selector
+                  operator: In
+                  values:
+                  - cluster-proxy-addon-manager
+          - weight: 35
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: ocm-antiaffinity-selector
+                  operator: In
+                  values:
+                  - cluster-proxy-addon-manager
+      tolerations:
+        - key: dedicated
+          operator: Exists
+          effect: NoSchedule
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/infra
+          operator: Exists
+      containers:
+        - name: manager
+          image: {{ .Values.global.imageOverrides.cluster_proxy }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          command:
+            - /manager
+          args:
+            - --leader-elect=true
+            - --signer-secret-namespace={{ .Release.Namespace }}
+            - --agent-image-name={{ .Values.global.imageOverrides.cluster_proxy }}
+            - --agent-install-namespace={{ .Values.spokeAddonNamespace }}
+        {{- if .Values.pullSecret }}
+      imagePullSecrets:
+      - name: {{ .Values.pullSecret }}
+      {{- end }}
+      {{- with .Values.hubconfig.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+      {{- end }}

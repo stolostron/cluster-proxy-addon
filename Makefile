@@ -1,6 +1,17 @@
 all: build
 .PHONY: all
 
+HELM?=_output/linux-amd64/helm
+
+IMAGE_CLUSTER_PROXY?=quay.io/stolostron/cluster-proxy:latest
+IMAGE_PULL_POLICY=Always
+IMAGE_TAG?=latest
+
+# Using the following command to get the base domain of a OCP cluster
+# export CLUSTER_BASE_DOMAIN=$(kubectl get ingress.config.openshift.io cluster -o=jsonpath='{.spec.domain}')
+CLUSTER_BASE_DOMAIN?=
+
+
 export GOPATH ?= $(shell go env GOPATH)
 
 # Include the library makefile
@@ -57,16 +68,30 @@ build-e2e:
 .PHONY: build-e2e
 
 deploy-ocm:
-	test/install-ocm.sh
+	curl -L https://raw.githubusercontent.com/open-cluster-management-io/clusteradm/main/install.sh | INSTALL_DIR=$(PWD) bash
+	$(PWD)/clusteradm init --output-join-command-file join.sh --wait
+	echo " loopback --force-internal-endpoint-lookup" >> join.sh && sh join.sh
+	$(PWD)/clusteradm accept --clusters loopback --wait 30
+	$(KUBECTL) wait --for=condition=ManagedClusterConditionAvailable managedcluster/loopback
 .PHONY: deploy-ocm
 
-deploy-addon-for-e2e:
-	test/install-addon.sh $(CLUSTER_PROXY_ADDON_IMAGE)
-.PHONY: deploy-addon-for-e2e
+ensure-helm:
+	mkdir -p _output
+	cd _output && curl -s -f -L https://get.helm.sh/helm-v3.2.4-linux-amd64.tar.gz -o helm-v3.2.4-linux-amd64.tar.gz
+	cd _output && tar -xvzf helm-v3.2.4-linux-amd64.tar.gz
+.PHONY: ensure-helm
 
-clean-addon-for-e2e:
-	test/uninstall-addon.sh
-.PHONY: clean-addon-for-e2e
+# CLUSTER_PROXY_ADDON_IMAGE is passed in by prow, represents the image of cluster-proxy-addon built with the current snapshot.
+deploy-addon-for-e2e: ensure-helm
+	$(KUBECTL) apply -f test/e2e/chart/cluster-proxy-addon/crds/*
+	$(HELM) install \
+	-n open-cluster-management-addon --create-namespace \
+	cluster-proxy-addon test/e2e/chart/cluster-proxy-addon \
+	--set global.pullPolicy="$(IMAGE_PULL_POLICY)" \
+	--set global.imageOverrides.cluster_proxy_addon="$(CLUSTER_PROXY_ADDON_IMAGE)" \
+	--set global.imageOverrides.cluster_proxy="$(IMAGE_CLUSTER_PROXY)" \
+	--set cluster_basedomain="$(shell $(KUBECTL) get ingress.config.openshift.io cluster -o=jsonpath='{.spec.domain}')"
+.PHONY: deploy-addon-for-e2e
 
 test-e2e: deploy-ocm deploy-addon-for-e2e build-e2e
 	export CLUSTER_BASE_DOMAIN=$(shell $(KUBECTL) get ingress.config.openshift.io cluster -o=jsonpath='{.spec.domain}') && ./e2e.test -test.v -ginkgo.v
