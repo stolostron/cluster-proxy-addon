@@ -83,10 +83,10 @@ ensure-helm:
 
 # CLUSTER_PROXY_ADDON_IMAGE is passed in by prow, represents the image of cluster-proxy-addon built with the current snapshot.
 deploy-addon-for-e2e: ensure-helm
-	$(KUBECTL) apply -f test/e2e/chart/cluster-proxy-addon/crds/*
+	$(KUBECTL) apply -f chart/cluster-proxy-addon/crds/*
 	$(HELM) install \
 	-n open-cluster-management-addon --create-namespace \
-	cluster-proxy-addon test/e2e/chart/cluster-proxy-addon \
+	cluster-proxy-addon chart/cluster-proxy-addon \
 	--set global.pullPolicy="$(IMAGE_PULL_POLICY)" \
 	--set global.imageOverrides.cluster_proxy_addon="$(CLUSTER_PROXY_ADDON_IMAGE)" \
 	--set global.imageOverrides.cluster_proxy="$(IMAGE_CLUSTER_PROXY)" \
