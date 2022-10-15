@@ -94,6 +94,6 @@ deploy-addon-for-e2e: ensure-helm
 .PHONY: deploy-addon-for-e2e
 
 test-e2e: deploy-ocm deploy-addon-for-e2e build-e2e
-    echo "Running e2e tests"
+	echo "Running e2e tests"
 	export CLUSTER_BASE_DOMAIN=$(shell $(KUBECTL) get ingress.config.openshift.io cluster -o=jsonpath='{.spec.domain}') && ./e2e.test -test.v -ginkgo.v
 .PHONY: test-e2e
