@@ -89,6 +89,7 @@ spec:
             - --signer-secret-namespace={{ .Release.Namespace }}
             - --agent-image-name={{ .Values.global.imageOverrides.cluster_proxy }}
             - --agent-install-namespace={{ .Values.spokeAddonNamespace }}
+            - --agent-install-all=true
         {{- if .Values.pullSecret }}
       imagePullSecrets:
       - name: {{ .Values.pullSecret }}
