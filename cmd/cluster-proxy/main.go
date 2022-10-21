@@ -10,12 +10,13 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/stolostron/cluster-proxy-addon/pkg/cmd/hub"
-
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	"k8s.io/klog/v2"
 
+	"github.com/stolostron/cluster-proxy-addon/pkg/controllers"
+	"github.com/stolostron/cluster-proxy-addon/pkg/serviceproxy"
+	"github.com/stolostron/cluster-proxy-addon/pkg/userserver"
 	"github.com/stolostron/cluster-proxy-addon/pkg/version"
 )
 
@@ -53,7 +54,9 @@ func newClusterProxyCommand() *cobra.Command {
 		cmd.Version = v
 	}
 
-	cmd.AddCommand(hub.NewUserServer())
+	cmd.AddCommand(userserver.NewUserServerCommand())
+	cmd.AddCommand(serviceproxy.NewServiceProxyCommand())
+	cmd.AddCommand(controllers.NewControllersCommand())
 
 	return cmd
 }

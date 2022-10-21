@@ -4,6 +4,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+//ExclusiveClusterSetLabel and LegacyClusterSetLabel LabelKey
+const ClusterSetLabel = "cluster.open-cluster-management.io/clusterset"
+
 // +genclient
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -47,18 +50,29 @@ type ManagedClusterSetSpec struct {
 
 // ManagedClusterSelector represents a selector of ManagedClusters
 type ManagedClusterSelector struct {
-	// SelectorType could only be "LegacyClusterSetLabel" now, will support more SelectorType later
-	// "LegacyClusterSetLabel" means to use label "cluster.open-cluster-management.io/clusterset:<ManagedClusterSet Name>"" to select target clusters.
-	// +kubebuilder:validation:Enum=LegacyClusterSetLabel
+	// SelectorType could only be "LegacyClusterSetLabel", "ExclusiveClusterSetLabel" or "LabelSelector"
+	// "ExclusiveClusterSetLabel" means to use label "cluster.open-cluster-management.io/clusterset:<ManagedClusterSet Name>"" to select target clusters.
+	// "LegacyClusterSetLabel" will be replaced by "ExclusiveClusterSetLabel" future
+	// "LabelSelector" means use labelSelector to select target managedClusters
+	// +kubebuilder:validation:Enum=LegacyClusterSetLabel;ExclusiveClusterSetLabel;LabelSelector
 	// +kubebuilder:default:=LegacyClusterSetLabel
 	// +required
 	SelectorType SelectorType `json:"selectorType,omitempty"`
+
+	// LabelSelector define the general labelSelector which clusterset will use to select target managedClusters
+	// +optional
+	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
 }
 
 type SelectorType string
 
 const (
+	// "ExclusiveClusterSetLabel" means to use label "cluster.open-cluster-management.io/clusterset:<ManagedClusterSet Name>"" to select target clusters.
+	ExclusiveClusterSetLabel SelectorType = "ExclusiveClusterSetLabel"
+	//LegacyClusterSetLabel will be replaced by "ExclusiveClusterSetLabel"
 	LegacyClusterSetLabel SelectorType = "LegacyClusterSetLabel"
+	// "LabelSelector" means use labelSelector to select target managedClusters
+	LabelSelector SelectorType = "LabelSelector"
 )
 
 // ManagedClusterSetStatus represents the current status of the ManagedClusterSet.
