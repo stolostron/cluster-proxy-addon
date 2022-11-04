@@ -113,17 +113,43 @@ var _ = Describe("Requests through Cluster-Proxy", func() {
 		})
 	})
 
-	Describe("Access Hello-World service", func() {
-		It("should return `Hello from hello-world\n`", func() {
-			targetHost := fmt.Sprintf("https://%s/%s/api/v1/namespaces/default/services/http:hello-world:8000/proxy-service/", userServerHost, managedClusterName)
+	Describe("Access Prometheus-k8s service", func() {
+		It("should return metrics with http code 200", func() {
+			targetHost := fmt.Sprintf(`https://%s/%s/api/v1/namespaces/openshift-monitoring/services/prometheus-k8s:9091/proxy-service/api/v1/query?query=machine_cpu_sockets`, userServerHost, managedClusterName)
 			fmt.Println("The targetHost: ", targetHost)
-			resp, err := clusterProxyHttpClient.Get(targetHost)
+
+			req, err := http.NewRequest("GET", targetHost, nil)
 			Expect(err).To(BeNil())
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			// Get serviceaccount openshift-monitoring/prometheus-k8s
+			sa, err := kubeClient.CoreV1().ServiceAccounts("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
+			Expect(err).To(BeNil())
+
+			// Find token secret
+			var token string
+			for _, secret := range sa.Secrets {
+				if strings.HasPrefix(secret.Name, "prometheus-k8s-token") {
+					// Get token
+					tokenSecret, err := kubeClient.CoreV1().Secrets("openshift-monitoring").Get(context.Background(), secret.Name, metav1.GetOptions{})
+					Expect(err).To(BeNil())
+					token = string(tokenSecret.Data["token"])
+					break
+				}
+			}
+
+			// Add token to request header
+			req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+
+			resp, err := clusterProxyHttpClient.Do(req)
+			Expect(err).To(BeNil())
 			defer resp.Body.Close()
+
 			body, err := ioutil.ReadAll(resp.Body)
 			Expect(err).To(BeNil())
-			Expect(string(body)).To(Equal("Hello from local-cluster\n"))
+			fmt.Println("response:", string(body))
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			Expect(strings.Contains(string(body), "success")).To(Equal(true))
 		})
 	})
 })
