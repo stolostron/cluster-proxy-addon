@@ -2,6 +2,7 @@ package utils
 
 import (
 	"crypto/sha256"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -152,6 +153,9 @@ func ServeHealthProbes(healthProbeBindAddress string, configCheck healthz.Checke
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
 		Addr:              healthProbeBindAddress,
+		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		},
 	}
 	klog.Infof("heath probes server is running...")
 	return server.ListenAndServe()

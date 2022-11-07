@@ -137,7 +137,7 @@ func (k *userServer) init(ctx context.Context) error {
 	return nil
 }
 
-func (k *userServer) handler(wr http.ResponseWriter, req *http.Request) {
+func (k *userServer) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	if klog.V(4).Enabled() {
 		dump, err := httputil.DumpRequest(req, true)
 		if err != nil {
@@ -246,9 +246,14 @@ func (k *userServer) Run(ctx context.Context) error {
 	}()
 
 	klog.Infof("start https server on %d", k.serverPort)
-	http.HandleFunc("/", k.handler)
 
-	err = http.ListenAndServeTLS(fmt.Sprintf(":%d", k.serverPort), k.serverCert, k.serverKey, nil)
+	s := &http.Server{
+		Addr:      fmt.Sprintf(":%d", k.serverPort),
+		TLSConfig: &tls.Config{MinVersion: tls.VersionTLS12},
+		Handler:   k,
+	}
+
+	err = s.ListenAndServeTLS(k.serverCert, k.serverKey)
 	if err != nil {
 		klog.Fatalf("failed to start user proxy server: %v", err)
 	}
