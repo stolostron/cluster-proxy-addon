@@ -54,19 +54,21 @@ func addFlagsForDeployController(cmd *cobra.Command) {
 }
 
 type reconcileDeployAgentManifestwork struct {
-	client        client.Client
-	addonLister   addonv1alpha1lister.ManagedClusterAddOnLister
-	clusterLister clusterv1lister.ManagedClusterLister
-	workClient    workv1client.Interface
+	client            client.Client
+	addonLister       addonv1alpha1lister.ManagedClusterAddOnLister
+	addonConfigLister addonv1alpha1lister.AddOnDeploymentConfigLister
+	clusterLister     clusterv1lister.ManagedClusterLister
+	workClient        workv1client.Interface
 }
 
-func registerDeployController(addonLister addonv1alpha1lister.ManagedClusterAddOnLister, clusterLister clusterv1lister.ManagedClusterLister, workClient workv1client.Interface, mgr manager.Manager) error {
+func registerDeployController(addonLister addonv1alpha1lister.ManagedClusterAddOnLister, addonConfigLister addonv1alpha1lister.AddOnDeploymentConfigLister, clusterLister clusterv1lister.ManagedClusterLister, workClient workv1client.Interface, mgr manager.Manager) error {
 	c, err := controller.New("deploy-controller", mgr, controller.Options{
 		Reconciler: &reconcileDeployAgentManifestwork{
-			client:        mgr.GetClient(),
-			addonLister:   addonLister,
-			clusterLister: clusterLister,
-			workClient:    workClient,
+			client:            mgr.GetClient(),
+			addonLister:       addonLister,
+			addonConfigLister: addonConfigLister,
+			clusterLister:     clusterLister,
+			workClient:        workClient,
 		},
 	})
 	if err != nil {
@@ -80,6 +82,8 @@ func registerDeployController(addonLister addonv1alpha1lister.ManagedClusterAddO
 }
 
 func (r *reconcileDeployAgentManifestwork) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
+	var err error
+
 	// get managedClusterAddon name and managedClusterNamee
 	managedClusterAddonName := request.Name
 	managedClusterName := request.Namespace
@@ -132,11 +136,54 @@ func (r *reconcileDeployAgentManifestwork) Reconcile(ctx context.Context, reques
 		return reconcile.Result{}, err
 	}
 
+	var nodeSelector map[string]string
+	tolerations := []corev1.Toleration{
+		{
+			Key:      "dedicated",
+			Operator: corev1.TolerationOpEqual,
+			Value:    "infra",
+			Effect:   corev1.TaintEffectNoSchedule,
+		},
+		{
+			Key:      "node-role.kubernetes.io/infra",
+			Operator: corev1.TolerationOpExists,
+			Effect:   corev1.TaintEffectNoSchedule,
+		},
+	}
+
 	// get nodeSelector
-	nodeSelector, err := getNodeSelector(managedCluster)
+	nodeSelector, err = getLocalClusterNodeSelector(managedCluster)
 	if err != nil {
 		klog.Errorf("Failed to get nodeSelector: %v", err)
 		return reconcile.Result{}, err
+	}
+
+	// get AddonDeploymentConfig
+	for _, cr := range managedClusterAddon.Status.ConfigReferences {
+		if cr.Resource == "AddOnDeploymentConfig" {
+			// get nodeplacement
+			addonDeploymentConfig, err := r.addonConfigLister.AddOnDeploymentConfigs(cr.Namespace).Get(cr.Name)
+			if err != nil {
+				if errors.IsNotFound(err) {
+					klog.Infof("Skip reconcile: AddOnDeploymentConfig %q not found", cr.Name)
+					break
+				}
+				klog.Errorf("Failed to get AddOnDeploymentConfig %q: %v", cr.Name, err)
+				return reconcile.Result{}, err
+			}
+
+			if !addonDeploymentConfig.DeletionTimestamp.IsZero() {
+				klog.Infof("Skip reconcile: AddOnDeploymentConfig %q is deleting", cr.Name)
+				break
+			}
+			nodeplacement := addonDeploymentConfig.Spec.NodePlacement.DeepCopy()
+			if nodeplacement != nil {
+				// set nodeselector and tolerations based on nodeplacement
+				nodeSelector = nodeplacement.NodeSelector
+				tolerations = nodeplacement.Tolerations
+			}
+			break
+		}
 	}
 
 	// new manifest service
@@ -149,13 +196,13 @@ func (r *reconcileDeployAgentManifestwork) Reconcile(ctx context.Context, reques
 	deployment := newDeployment(constant.AgentInstallNamespace,
 		overrideImageName, defaultImagePullPolicy,
 		nodeSelector,
+		tolerations,
 	)
 
 	// new agent manifestwork
 	manifestWork := newManifestWork(managedClusterAddon, service, serverCertSecret, deployment)
 
 	// create or update manifestwork
-	// TODO: get nodeSeletor from managedcluster status.
 	if err := createOrUpdateManifestWork(ctx, r.workClient, manifestWork); err != nil {
 		klog.Errorf("Failed to create or update manifestwork: %v", err)
 		return reconcile.Result{}, err
@@ -207,7 +254,7 @@ func getOverrideImageName(cluster *clusterv1.ManagedCluster, agentImage string) 
 	return imageregistry.OverrideImageByAnnotation(cluster.GetAnnotations(), agentImage)
 }
 
-func getNodeSelector(managedCluster *clusterv1.ManagedCluster) (map[string]string, error) {
+func getLocalClusterNodeSelector(managedCluster *clusterv1.ManagedCluster) (map[string]string, error) {
 	nodeSelector := map[string]string{}
 
 	if managedCluster.GetName() == "local-cluster" {
