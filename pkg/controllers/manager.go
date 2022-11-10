@@ -88,6 +88,7 @@ func runControllerManager() error {
 	}
 	addonInformerFactory := addoninformers.NewSharedInformerFactory(addonClient, 10*time.Minute)
 	addonLister := addonInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Lister()
+	addonConfigLister := addonInformerFactory.Addon().V1alpha1().AddOnDeploymentConfigs().Lister()
 
 	go addonInformerFactory.Start(ctx.Done())
 
@@ -129,7 +130,7 @@ func runControllerManager() error {
 	}
 
 	// Register DeployController
-	err = registerDeployController(addonLister, clusterLister, workClient, mgr)
+	err = registerDeployController(addonLister, addonConfigLister, clusterLister, workClient, mgr)
 	if err != nil {
 		klog.Error(err, "unable to set up deploy-controller")
 		return err

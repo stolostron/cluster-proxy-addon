@@ -113,7 +113,7 @@ func checkAddonStatus() {
 				return err
 			}
 			if d.Status.AvailableReplicas < 1 {
-				return fmt.Errorf("available replicas for %s should >= 1, but get %d", deployment, d.Status.Replicas)
+				return fmt.Errorf("available replicas for %s should >= 1, but get %d", deployment, d.Status.AvailableReplicas)
 			}
 		}
 

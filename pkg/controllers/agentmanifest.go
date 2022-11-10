@@ -81,6 +81,7 @@ func newServerCertSecret(agentInstallNamespace string, keyData, certData []byte)
 func newDeployment(agentInstallNamespace string,
 	image string, imagePullPolicy corev1.PullPolicy,
 	nodeSelector map[string]string,
+	tolerations []corev1.Toleration,
 ) *appsv1.Deployment {
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -191,19 +192,7 @@ func newDeployment(agentInstallNamespace string,
 							Name: imagePullSecret,
 						},
 					},
-					Tolerations: []corev1.Toleration{
-						{
-							Key:      "dedicated",
-							Operator: corev1.TolerationOpEqual,
-							Value:    "infra",
-							Effect:   corev1.TaintEffectNoSchedule,
-						},
-						{
-							Key:      "node-role.kubernetes.io/infra",
-							Operator: corev1.TolerationOpExists,
-							Effect:   corev1.TaintEffectNoSchedule,
-						},
-					},
+					Tolerations:  tolerations,
 					NodeSelector: nodeSelector,
 				},
 			},
