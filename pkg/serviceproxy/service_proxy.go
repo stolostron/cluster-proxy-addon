@@ -91,11 +91,18 @@ func (s *serviceProxy) Run(ctx context.Context) error {
 		return err
 	}
 
-	http.HandleFunc("/", s.handler)
-	return http.ListenAndServeTLS(fmt.Sprintf(":%d", constant.ServiceProxyPort), s.cert, s.key, nil)
+	httpserver := &http.Server{
+		Addr: fmt.Sprintf(":%d", constant.ServiceProxyPort),
+		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		},
+		Handler: s,
+	}
+
+	return httpserver.ListenAndServeTLS(s.cert, s.key)
 }
 
-func (s *serviceProxy) handler(wr http.ResponseWriter, req *http.Request) {
+func (s *serviceProxy) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	if klog.V(4).Enabled() {
 		dump, err := httputil.DumpRequest(req, true)
 		if err != nil {
