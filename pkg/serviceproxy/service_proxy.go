@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -16,6 +17,7 @@ import (
 	"github.com/stolostron/cluster-proxy-addon/pkg/utils"
 	"k8s.io/klog/v2"
 	addonutils "open-cluster-management.io/addon-framework/pkg/utils"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 )
 
 func NewServiceProxyCommand() *cobra.Command {
@@ -36,7 +38,6 @@ func NewServiceProxyCommand() *cobra.Command {
 
 type serviceProxy struct {
 	cert, key    string
-	apiserverCA  string
 	ocpserviceCA string
 	rootCAs      *x509.CertPool
 
@@ -55,7 +56,6 @@ func (s *serviceProxy) AddFlags(cmd *cobra.Command) {
 
 	flags.StringVar(&s.cert, "cert", s.cert, "The path to the certificate of the service proxy server")
 	flags.StringVar(&s.key, "key", s.key, "The path to the key of the service proxy server")
-	flags.StringVar(&s.apiserverCA, "apiserver-ca", s.apiserverCA, "The path to the CA certificate of the apiserver")
 	flags.StringVar(&s.ocpserviceCA, "ocpservice-ca", s.ocpserviceCA, "The path to the CA certificate of the ocp services")
 
 	// proxy related flags
@@ -66,30 +66,55 @@ func (s *serviceProxy) AddFlags(cmd *cobra.Command) {
 }
 
 func (s *serviceProxy) Run(ctx context.Context) error {
+	const (
+		rootCAFile = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+	)
 	var err error
+	customChecks := []healthz.Checker{}
+
+	cc, err := addonutils.NewConfigChecker("cert", s.cert, s.key, rootCAFile)
+	if err != nil {
+		return err
+	}
+	customChecks = append(customChecks, cc.Check)
 
 	if err := s.validate(); err != nil {
 		return err
 	}
 
-	// add configchecker into http probes
-	cc, err := addonutils.NewConfigChecker("http-service-proxy", s.cert, s.key, s.apiserverCA, s.ocpserviceCA)
+	// get root CAs
+	s.rootCAs = x509.NewCertPool()
+	// ca for accessing apiserver
+
+	apiserverPem, err := ioutil.ReadFile(rootCAFile)
 	if err != nil {
-		klog.Fatal(err)
+		return err
+	}
+	s.rootCAs.AppendCertsFromPEM(apiserverPem)
+	// ca for accessing ocp services
+	ocpserviceCAPem, err := ioutil.ReadFile(s.ocpserviceCA)
+	if err != nil {
+		if os.IsNotExist(err) {
+			klog.Infof("ocpservice-ca is not provided")
+		} else {
+			return err
+		}
+	} else {
+		s.rootCAs.AppendCertsFromPEM(ocpserviceCAPem)
+
+		// add configchecker into http probes only when ocpservice-ca is provided
+		cc, err := addonutils.NewConfigChecker("ocpservice-ca", s.ocpserviceCA)
+		if err != nil {
+			return err
+		}
+		customChecks = append(customChecks, cc.Check)
 	}
 
 	go func() {
-		if err = utils.ServeHealthProbes(":8000", cc.Check); err != nil {
+		if err = utils.ServeHealthProbes(":8000", customChecks...); err != nil {
 			klog.Fatal(err)
 		}
 	}()
-
-	// get root CAs
-	s.rootCAs, err = getRootCAs(s.apiserverCA, s.ocpserviceCA)
-	if err != nil {
-		klog.Errorf("failed to get root ca: %v", err)
-		return err
-	}
 
 	httpserver := &http.Server{
 		Addr: fmt.Sprintf(":%d", constant.ServiceProxyPort),
@@ -130,8 +155,6 @@ func (s *serviceProxy) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 		IdleConnTimeout:       s.idleConnTimeout,
 		TLSHandshakeTimeout:   s.tLSHandshakeTimeout,
 		ExpectContinueTimeout: s.expectContinueTimeout,
-		// skip server-auth of kube-apiserver
-		// TODO use server-auth
 		TLSClientConfig: &tls.Config{
 			RootCAs:    s.rootCAs,
 			MinVersion: tls.VersionTLS12,
@@ -151,29 +174,5 @@ func (s *serviceProxy) validate() error {
 	if s.key == "" {
 		return fmt.Errorf("key is required")
 	}
-	if s.apiserverCA == "" {
-		return fmt.Errorf("apiserver-ca-cert is required")
-	}
-	if s.ocpserviceCA == "" {
-		return fmt.Errorf("services-ca-cert is required")
-	}
 	return nil
-}
-
-func getRootCAs(apiserverCACert, servicesCACert string) (*x509.CertPool, error) {
-	rootCa := x509.NewCertPool()
-
-	pem, err := ioutil.ReadFile(apiserverCACert)
-	if err != nil {
-		return nil, err
-	}
-	rootCa.AppendCertsFromPEM(pem)
-
-	pem, err = ioutil.ReadFile(servicesCACert)
-	if err != nil {
-		return nil, err
-	}
-	rootCa.AppendCertsFromPEM(pem)
-
-	return rootCa, nil
 }
