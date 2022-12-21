@@ -143,12 +143,18 @@ func IsProxyService(reqURI string) bool {
 }
 
 // ServeHealthProbes serves health probes and configchecker.
-func ServeHealthProbes(healthProbeBindAddress string, configCheck healthz.Checker) error {
+func ServeHealthProbes(healthProbeBindAddress string, customChecks ...healthz.Checker) error {
 	mux := http.NewServeMux()
-	mux.Handle("/healthz", http.StripPrefix("/healthz", &healthz.Handler{Checks: map[string]healthz.Checker{
+
+	checks := map[string]healthz.Checker{
 		"healthz-ping": healthz.Ping,
-		"configz-ping": configCheck,
-	}}))
+	}
+
+	for i, check := range customChecks {
+		checks[fmt.Sprintf("custom-healthz-checker-%d", i)] = check
+	}
+
+	mux.Handle("/healthz", http.StripPrefix("/healthz", &healthz.Handler{Checks: checks}))
 	server := http.Server{
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,

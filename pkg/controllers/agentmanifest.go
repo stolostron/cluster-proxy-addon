@@ -4,6 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/pointer"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -110,22 +111,13 @@ func newDeployment(agentInstallNamespace string,
 				Spec: corev1.PodSpec{
 					Volumes: []corev1.Volume{
 						{
-							Name: "apiserver-ca",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: "kube-root-ca.crt",
-									},
-								},
-							},
-						},
-						{
 							Name: "ocpservice-ca",
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
 										Name: "openshift-service-ca.crt",
 									},
+									Optional: pointer.Bool(true), // In non-ocp clusters, the configmap is not present, so we make it optional
 								},
 							},
 						},
@@ -154,7 +146,6 @@ func newDeployment(agentInstallNamespace string,
 							Args: []string{
 								"/cluster-proxy",
 								"service-proxy",
-								"--apiserver-ca=/apiserver-ca/ca.crt",
 								"--ocpservice-ca=/ocpservice-ca/service-ca.crt",
 								"--cert=/server-cert/tls.crt",
 								"--key=/server-cert/tls.key",
@@ -171,10 +162,6 @@ func newDeployment(agentInstallNamespace string,
 								PeriodSeconds:       10,
 							},
 							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "apiserver-ca",
-									MountPath: "/apiserver-ca",
-								},
 								{
 									Name:      "ocpservice-ca",
 									MountPath: "/ocpservice-ca",
