@@ -189,7 +189,6 @@ func (k *userServer) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 	proxy.Transport = &http.Transport{
-		Proxy:                 http.ProxyFromEnvironment,
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
@@ -202,6 +201,7 @@ func (k *userServer) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 		// set ForceAttemptHTTP2 = false to prevent auto http2 upgration
 		ForceAttemptHTTP2: false,
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			klog.V(4).Infof("proxy dial to %s", addr)
 			// TODO: may find a way to cache the proxyConn.
 			proxyConn, err = tunnel.DialContext(ctx, network, addr)
 			return proxyConn, err
