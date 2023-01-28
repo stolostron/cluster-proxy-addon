@@ -784,9 +784,11 @@ open-cluster-management.io/api/work/v1
 # sigs.k8s.io/apiserver-network-proxy v0.0.4
 ## explicit; go 1.12
 sigs.k8s.io/apiserver-network-proxy/pkg/util
-# sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.32
+# sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.1.1
 ## explicit; go 1.17
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client
+sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client/metrics
+sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/common/metrics
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/proto/client
 # sigs.k8s.io/controller-runtime v0.13.0
 ## explicit; go 1.17
