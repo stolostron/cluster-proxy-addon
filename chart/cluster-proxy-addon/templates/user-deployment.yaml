@@ -111,7 +111,7 @@ spec:
           - "/cluster-proxy"
         args:
           - "user-server"
-          - "--host={{ template "cluster-proxy-addon.proxy-entrypoint-namespace" . }}"
+          - "--host={{ template "cluster-proxy-addon.proxy-entrypoint-namespace" . }}.svc"
           - "--port=8090"
           - "--proxy-ca-cert=/proxy-ca/ca.crt"
           - "--proxy-cert=/proxy-client-tls/tls.crt"
