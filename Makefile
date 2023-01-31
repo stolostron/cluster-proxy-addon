@@ -30,7 +30,7 @@ IMAGE_TAG ?= latest
 
 # ANP source code
 ANP_NAME ?= apiserver-network-proxy
-ANP_VERSION ?= 0.0.27
+ANP_VERSION ?= 0.1.1
 ANP_SRC_CODE ?= dependencymagnet/${ANP_NAME}/${ANP_VERSION}.tar.gz
 
 # Add packages to do unit test
