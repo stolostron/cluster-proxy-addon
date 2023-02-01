@@ -23,6 +23,7 @@ import (
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
+	klog.InitFlags(nil)
 	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 
