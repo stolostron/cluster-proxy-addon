@@ -47,7 +47,7 @@ var (
 
 type userServer struct {
 	// TODO: make it a controller and reuse tunnel for each cluster to improve performance.
-	getTunnel       func() (konnectivity.Tunnel, error)
+	getTunnel       func(context.Context) (konnectivity.Tunnel, error)
 	proxyServerHost string
 	proxyServerPort int
 
@@ -119,10 +119,11 @@ func (k *userServer) init(ctx context.Context) error {
 		return fmt.Errorf("failed to parse service proxy ca cert")
 	}
 
-	k.getTunnel = func() (konnectivity.Tunnel, error) {
+	k.getTunnel = func(tunnelCtx context.Context) (konnectivity.Tunnel, error) {
 		// instantiate a gprc proxy dialer
-		tunnel, err := konnectivity.CreateSingleUseGrpcTunnel(
+		tunnel, err := konnectivity.CreateSingleUseGrpcTunnelWithContext(
 			ctx,
+			tunnelCtx,
 			net.JoinHostPort(k.proxyServerHost, strconv.Itoa(k.proxyServerPort)),
 			grpc.WithTransportCredentials(grpccredentials.NewTLS(proxyTLSCfg)),
 			grpc.WithKeepaliveParams(keepalive.ClientParameters{
@@ -171,21 +172,11 @@ func (k *userServer) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	tunnel, err := k.getTunnel()
+	tunnel, err := k.getTunnel(req.Context())
 	if err != nil {
 		http.Error(wr, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	var proxyConn net.Conn
-	defer func() {
-		if proxyConn != nil {
-			err = proxyConn.Close()
-			if err != nil {
-				klog.Errorf("connection closed: %v", err)
-			}
-		}
-	}()
 
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 	proxy.Transport = &http.Transport{
@@ -203,8 +194,7 @@ func (k *userServer) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			klog.V(4).Infof("proxy dial to %s", addr)
 			// TODO: may find a way to cache the proxyConn.
-			proxyConn, err = tunnel.DialContext(ctx, network, addr)
-			return proxyConn, err
+			return tunnel.DialContext(ctx, network, addr)
 		},
 	}
 
