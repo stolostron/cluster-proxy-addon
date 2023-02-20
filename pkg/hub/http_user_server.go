@@ -135,7 +135,6 @@ func (k *HTTPUserServer) handler(wr http.ResponseWriter, req *http.Request) {
 
 	proxy := httputil.NewSingleHostReverseProxy(apiserverURL)
 	proxy.Transport = &http.Transport{
-		Proxy:                 http.ProxyFromEnvironment,
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
