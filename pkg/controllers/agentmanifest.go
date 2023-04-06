@@ -107,6 +107,9 @@ func newDeployment(agentInstallNamespace string,
 					Labels: map[string]string{
 						"app": "cluster-proxy-service-proxy",
 					},
+					Annotations: map[string]string{
+						"target.workload.openshift.io/management": "{\"effect\": \"PreferredDuringScheduling\"}",
+					},
 				},
 				Spec: corev1.PodSpec{
 					Volumes: []corev1.Volume{
