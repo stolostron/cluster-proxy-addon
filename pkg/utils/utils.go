@@ -160,7 +160,7 @@ func ServeHealthProbes(healthProbeBindAddress string, customChecks ...healthz.Ch
 		ReadHeaderTimeout: 5 * time.Second,
 		Addr:              healthProbeBindAddress,
 		TLSConfig: &tls.Config{
-			MinVersion: tls.VersionTLS12,
+			MinVersion: tls.VersionTLS13,
 		},
 	}
 	klog.Infof("heath probes server is running...")
