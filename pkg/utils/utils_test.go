@@ -69,29 +69,29 @@ func TestGetTargetServiceConfigForKubeAPIServer(t *testing.T) {
 	}
 }
 
-func TestIsProxyService(t *testing.T) {
+func TestGetProxyType(t *testing.T) {
 	testcases := []struct {
 		requestURL string
-		isProxy    bool
+		proxyType  int
 	}{
 		{
 			requestURL: "route-domain/cluster1/api?timeout=32s",
-			isProxy:    false,
+			proxyType:  ProxyTypeKubeAPIServer,
 		},
 		{
 			requestURL: "route-domain/cluster1/api/pods?timeout=32s",
-			isProxy:    false,
+			proxyType:  ProxyTypeKubeAPIServer,
 		},
 		{
 			requestURL: "route-domain/cluster1/api/v1/namespaces/default/services/https:nginx:80/proxy-service/hello",
-			isProxy:    true,
+			proxyType:  ProxyTypeService,
 		},
 	}
 
 	for _, tc := range testcases {
-		isProxy := IsProxyService(tc.requestURL)
-		if isProxy != tc.isProxy {
-			t.Errorf("expected isProxy: %v, got: %v", tc.isProxy, isProxy)
+		pt := GetProxyType(tc.requestURL)
+		if pt != tc.proxyType {
+			t.Errorf("expected isProxy: %v, got: %v", tc.proxyType, pt)
 		}
 	}
 }
@@ -171,7 +171,7 @@ func TestGenerateServiceProxyURL(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		actual := GenerateServiceProxyURL(tc.cluster, tc.namespace, tc.service)
+		actual := GetServiceProxyURL(tc.cluster, tc.namespace, tc.service)
 		if actual != tc.expected {
 			t.Errorf("expected: %v, got: %v", tc.expected, actual)
 		}
@@ -212,7 +212,7 @@ func TestUpdateRequest(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		actual := tsc.UpdateRequest(tc.req)
+		actual := UpdateRequest(tsc, tc.req)
 		if actual.Header.Get("Cluster-Proxy-Proto") != tc.expect.Header.Get("Cluster-Proxy-Proto") {
 			t.Errorf("expected proto: %v, got: %v", tc.expect.Header.Get("Cluster-Proxy-Proto"), actual.Header.Get("Cluster-Proxy-Proto"))
 		}
