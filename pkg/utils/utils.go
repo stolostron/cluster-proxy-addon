@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"crypto/sha256"
 	"crypto/tls"
 	"fmt"
 	"net/http"
@@ -12,6 +11,7 @@ import (
 	"github.com/stolostron/cluster-proxy-addon/pkg/constant"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/klog/v2"
+	clusterproxyutil "open-cluster-management.io/cluster-proxy/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 )
 
@@ -21,6 +21,10 @@ const (
 	HEADERSERVICEKEY  = "Service-Client-Key"
 )
 
+// TargetServiceConfig is a collection of data extrict from the request URL description the target service we can to access on the managed cluster.
+// There are 2 usages of it:
+// 1. used in function `ServiceProxyURL` to construct the target service URL.
+// 2. used in function `UpdateRequest` to update the request object.
 type TargetServiceConfig struct {
 	Cluster   string
 	Proto     string
@@ -30,24 +34,26 @@ type TargetServiceConfig struct {
 	Path      string
 }
 
-func GetTargetServiceConfigForKubeAPIServer(requestURL string) (ts TargetServiceConfig, err error) {
-	paths := strings.Split(requestURL, "/")
-	if len(paths) <= 2 {
-		err = fmt.Errorf("requestURL format not correct, path more than 2: %s", requestURL)
-		return
-	}
-	kubeAPIPath := strings.Join(paths[2:], "/")      // api/pods?timeout=32s
-	kubeAPIPath = strings.Split(kubeAPIPath, "?")[0] // api/pods note: we only need path here, the proxy pkg would add params back
-	return TargetServiceConfig{
-		Cluster:   paths[1],
-		Proto:     "https",
-		Service:   "kubernetes",
-		Namespace: "default",
-		Port:      "443",
-		Path:      kubeAPIPath,
-	}, nil
+func GetServiceProxyURL(cluster, namespace, service string) string {
+	return fmt.Sprintf("https://%s:%d", clusterproxyutil.GenerateServiceURL(cluster, namespace, service), constant.ServiceProxyPort)
 }
 
+func UpdateRequest(t TargetServiceConfig, req *http.Request) *http.Request {
+	// update request URL path
+	req.URL.Path = t.Path
+
+	// populate proto, namespace, service, and port to request headers
+	req.Header.Set("Cluster-Proxy-Proto", t.Proto)
+	req.Header.Set("Cluster-Proxy-Namespace", t.Namespace)
+	req.Header.Set("Cluster-Proxy-Service", t.Service)
+	req.Header.Set("Cluster-Proxy-Port", t.Port)
+
+	return req
+}
+
+// GetTargetServiceConfig extrict the target service config from requestURL
+// input: https://<route location cluster-proxy>/cluster1/api/v1/namespaces/default/services/<https:helloworld:8080>/proxy-service/ping?time-out=32s
+// output: TargetServiceConfig{Cluster: cluster1, Proto: https, Service: helloworld, Namespace: default, Port: 8080, Path: /ping}
 func GetTargetServiceConfig(requestURL string) (ts TargetServiceConfig, err error) {
 	urlparams := strings.Split(requestURL, "/")
 	if len(urlparams) < 9 {
@@ -55,7 +61,6 @@ func GetTargetServiceConfig(requestURL string) (ts TargetServiceConfig, err erro
 		return
 	}
 
-	// get targetHost
 	namespace := urlparams[5]
 
 	proto, service, port, valid := utilnet.SplitSchemeNamePort(urlparams[7])
@@ -68,7 +73,6 @@ func GetTargetServiceConfig(requestURL string) (ts TargetServiceConfig, err erro
 		return TargetServiceConfig{}, fmt.Errorf("for security reasons, only support https yet, invaild proto: %s", proto)
 	}
 
-	// get servicePath
 	servicePath := strings.Join(urlparams[9:], "/")
 	servicePath = strings.Split(servicePath, "?")[0] //we only need path here, the proxy pkg would add params back
 
@@ -82,19 +86,31 @@ func GetTargetServiceConfig(requestURL string) (ts TargetServiceConfig, err erro
 	}, nil
 }
 
-func (t TargetServiceConfig) UpdateRequest(req *http.Request) *http.Request {
-	// update request URL path
-	req.URL.Path = t.Path
+// GetTargetServiceConfigForKubeAPIServer extrict the kube apiserver config from requestURL
+// input: https://<route location cluster-proxy>/cluster1/api/pods?timeout=32s
+// output: TargetServiceConfig{Cluster: cluster1, Proto: https, Service: kubernetes, Namespace: default, Port: 443, Path: api/pods}
+func GetTargetServiceConfigForKubeAPIServer(requestURL string) (ts TargetServiceConfig, err error) {
+	ts = TargetServiceConfig{
+		Proto:     "https",
+		Service:   "kubernetes",
+		Namespace: "default",
+		Port:      "443",
+	}
 
-	// populate proto, namespace, service, and port to request headers
-	req.Header.Set("Cluster-Proxy-Proto", t.Proto)
-	req.Header.Set("Cluster-Proxy-Namespace", t.Namespace)
-	req.Header.Set("Cluster-Proxy-Service", t.Service)
-	req.Header.Set("Cluster-Proxy-Port", t.Port)
+	paths := strings.Split(requestURL, "/")
+	if len(paths) <= 2 {
+		err = fmt.Errorf("requestURL format not correct, path more than 2: %s", requestURL)
+		return
+	}
+	kubeAPIPath := strings.Join(paths[2:], "/")      // api/pods?timeout=32s
+	kubeAPIPath = strings.Split(kubeAPIPath, "?")[0] // api/pods note: we only need path here, the proxy pkg would add params back
 
-	return req
+	ts.Cluster = paths[1]
+	ts.Path = kubeAPIPath
+	return ts, nil
 }
 
+// GetTargetServiceURLFromRequest is used on the agent side, the service-proxy agent recived a request from the proxy-agent, and need to know the target service URL to do further proxy.
 func GetTargetServiceURLFromRequest(req *http.Request) (*url.URL, error) {
 	// get proto, namespace, service, and port from request headers
 	proto := req.Header.Get("Cluster-Proxy-Proto")
@@ -123,23 +139,20 @@ func GetTargetServiceURLFromRequest(req *http.Request) (*url.URL, error) {
 	return url, nil
 }
 
-// TODO: replace with the util pkg provided by cluster-proxy later.
-func GenerateServiceProxyURL(cluster, namespace, service string) string {
-	// Using hash to generate a random string;
-	// Sum256 will give a string with length equals 64. But the name of a service must be no more than 63 characters.
-	// Also need to add "cluster-proxy-" as prefix to prevent content starts with a number.
-	host := fmt.Sprintf("cluster-proxy-%x", sha256.Sum256([]byte(fmt.Sprintf("%s %s %s", cluster, namespace, service))))[:63]
-	return fmt.Sprintf("https://%s:%d", host, constant.ServiceProxyPort)
-}
+const (
+	ProxyTypeService = iota
+	ProxyTypeKubeAPIServer
+)
 
-// IsProxyService determines whether a request is meant to proxy to a target service.
-// An example service URL: https://<route location cluster-proxy>/<managed_cluster_name>/api/v1/namespaces/<namespace_name>/services/<[https:]service_name[:port_name]>/proxy-service/<service_path>
-func IsProxyService(reqURI string) bool {
+// GetProxyType determines whether a request meant to proxy to a regular service or the kube-apiserver of the managed cluster.
+// An example of service: https://<route location cluster-proxy>/<managed_cluster_name>/api/v1/namespaces/<namespace_name>/services/<[https:]service_name[:port_name]>/proxy-service/<service_path>
+// An example of kube-apiserver: https://<route location cluster-proxy>/<managed_cluster_name>/api/pods?timeout=32s
+func GetProxyType(reqURI string) int {
 	urlparams := strings.Split(reqURI, "/")
 	if len(urlparams) > 9 && urlparams[8] == "proxy-service" {
-		return true
+		return ProxyTypeService
 	}
-	return false
+	return ProxyTypeKubeAPIServer
 }
 
 // ServeHealthProbes serves health probes and configchecker.

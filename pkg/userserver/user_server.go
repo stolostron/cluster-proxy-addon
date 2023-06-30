@@ -104,7 +104,7 @@ func newUserServer() *userServer {
 }
 
 func (k *userServer) init(ctx context.Context) error {
-	proxyTLSCfg, err := util.GetClientTLSConfig(k.proxyCACertPath, k.proxyCertPath, k.proxyKeyPath, k.proxyServerHost)
+	proxyTLSCfg, err := util.GetClientTLSConfig(k.proxyCACertPath, k.proxyCertPath, k.proxyKeyPath, k.proxyServerHost, nil)
 	if err != nil {
 		return err
 	}
@@ -151,22 +151,20 @@ func (k *userServer) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	var tsc utils.TargetServiceConfig
 	var err error
 
-	if utils.IsProxyService(req.RequestURI) {
+	switch utils.GetProxyType(req.RequestURI) {
+	case utils.ProxyTypeService:
 		tsc, err = utils.GetTargetServiceConfig(req.RequestURI)
-		if err != nil {
-			http.Error(wr, err.Error(), http.StatusBadRequest)
-			return
-		}
-	} else {
+	case utils.ProxyTypeKubeAPIServer:
 		tsc, err = utils.GetTargetServiceConfigForKubeAPIServer(req.RequestURI)
-		if err != nil {
-			http.Error(wr, err.Error(), http.StatusBadRequest)
-			return
-		}
+	}
+	if err != nil {
+		http.Error(wr, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	// get service proxy host for current managed cluster
-	targetURL, err := url.Parse(utils.GenerateServiceProxyURL(tsc.Cluster, k.agentInstallNamespace, constant.ServiceProxyName))
+
+	targetURL, err := url.Parse(utils.GetServiceProxyURL(tsc.Cluster, k.agentInstallNamespace, constant.ServiceProxyName))
 	if err != nil {
 		http.Error(wr, err.Error(), http.StatusBadRequest)
 		return
@@ -205,7 +203,7 @@ func (k *userServer) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 
 	klog.V(4).Infof("request scheme:%s; rawQuery:%s; path:%s", req.URL.Scheme, req.URL.RawQuery, req.URL.Path)
 
-	proxy.ServeHTTP(wr, tsc.UpdateRequest(req))
+	proxy.ServeHTTP(wr, utils.UpdateRequest(tsc, req))
 }
 
 func (k *userServer) Run(ctx context.Context) error {
