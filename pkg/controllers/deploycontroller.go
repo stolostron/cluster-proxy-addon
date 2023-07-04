@@ -160,7 +160,7 @@ func (r *reconcileDeployAgentManifestwork) Reconcile(ctx context.Context, reques
 
 	// get AddonDeploymentConfig
 	for _, cr := range managedClusterAddon.Status.ConfigReferences {
-		if cr.Resource == "AddOnDeploymentConfig" {
+		if cr.Resource == "addondeploymentconfigs" {
 			// get nodeplacement
 			addonDeploymentConfig, err := r.addonConfigLister.AddOnDeploymentConfigs(cr.Namespace).Get(cr.Name)
 			if err != nil {
@@ -233,10 +233,10 @@ func getServerCertificatesFromSecret(kubeClient client.Client, secretNamespace s
 	secret := &corev1.Secret{}
 	err := kubeClient.Get(context.TODO(), types.NamespacedName{
 		Name:      constant.ServerCertSecretName,
-		Namespace: certificatesNamespace,
+		Namespace: secretNamespace,
 	}, secret)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("Failed to get secret %s in the namespace %s: %v", constant.ServerCertSecretName, secretNamespace, err)
 
 	}
 	cert, ok := secret.Data["tls.crt"]
