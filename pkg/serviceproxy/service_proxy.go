@@ -119,7 +119,7 @@ func (s *serviceProxy) Run(ctx context.Context) error {
 	httpserver := &http.Server{
 		Addr: fmt.Sprintf(":%d", constant.ServiceProxyPort),
 		TLSConfig: &tls.Config{
-			MinVersion: tls.VersionTLS13,
+			MinVersion: tls.VersionTLS12,
 		},
 		Handler: s,
 	}
@@ -156,7 +156,7 @@ func (s *serviceProxy) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 		ExpectContinueTimeout: s.expectContinueTimeout,
 		TLSClientConfig: &tls.Config{
 			RootCAs:    s.rootCAs,
-			MinVersion: tls.VersionTLS13,
+			MinVersion: tls.VersionTLS12,
 		},
 		// golang http pkg automaticly upgrade http connection to http2 connection, but http2 can not upgrade to SPDY which used in "kubectl exec".
 		// set ForceAttemptHTTP2 = false to prevent auto http2 upgration
