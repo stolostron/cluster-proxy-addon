@@ -11,6 +11,7 @@ IMAGE_TAG?=latest
 # export CLUSTER_BASE_DOMAIN=$(kubectl get ingress.config.openshift.io cluster -o=jsonpath='{.spec.domain}')
 CLUSTER_BASE_DOMAIN?=
 
+export CGO_ENABLED = 1
 
 export GOPATH ?= $(shell go env GOPATH)
 
@@ -56,8 +57,8 @@ build-anp:
 	mkdir -p $(PERMANENT_TMP)
 	cp $(ANP_SRC_CODE) $(PERMANENT_TMP)/$(ANP_NAME).tar.gz
 	cd $(PERMANENT_TMP) && tar -xf $(ANP_NAME).tar.gz
-	cd $(PERMANENT_TMP)/$(ANP_NAME) && CGO_ENABLED=1 go build -o proxy-agent cmd/agent/main.go
-	cd $(PERMANENT_TMP)/$(ANP_NAME) && CGO_ENABLED=1 go build -o proxy-server cmd/server/main.go
+	cd $(PERMANENT_TMP)/$(ANP_NAME) && go build -o proxy-agent cmd/agent/main.go
+	cd $(PERMANENT_TMP)/$(ANP_NAME) && go build -o proxy-server cmd/server/main.go
 	mv $(PERMANENT_TMP)/$(ANP_NAME)/proxy-agent ./
 	mv $(PERMANENT_TMP)/$(ANP_NAME)/proxy-server ./
 .PHONY: build-anp
