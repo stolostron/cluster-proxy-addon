@@ -812,7 +812,7 @@ open-cluster-management.io/cluster-proxy/pkg/util
 # sigs.k8s.io/apiserver-network-proxy v0.0.27
 ## explicit; go 1.17
 sigs.k8s.io/apiserver-network-proxy/pkg/util
-# sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.1.1
+# sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.1.4
 ## explicit; go 1.17
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client/metrics
