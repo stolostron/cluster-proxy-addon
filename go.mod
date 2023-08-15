@@ -24,7 +24,7 @@ require (
 	open-cluster-management.io/api v0.10.1
 	open-cluster-management.io/cluster-proxy v0.3.0
 	sigs.k8s.io/apiserver-network-proxy v0.0.27
-	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.1.1
+	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.1.4
 	sigs.k8s.io/controller-runtime v0.14.4
 )
 
