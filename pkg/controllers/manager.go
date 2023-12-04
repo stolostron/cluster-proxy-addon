@@ -12,11 +12,6 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
-	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
-	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
-	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
-	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
-	workv1client "open-cluster-management.io/api/client/work/clientset/versioned"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -51,7 +46,6 @@ func NewControllersCommand() *cobra.Command {
 
 	addFlags(cmd)
 	addFlagsForCertController(cmd)
-	addFlagsForDeployController(cmd)
 
 	return cmd
 }
@@ -81,33 +75,6 @@ func runControllerManager() error {
 
 	go informerFactory.Start(ctx.Done())
 
-	// addonClient and lister
-	addonClient, err := addonv1alpha1client.NewForConfig(kubeConfig)
-	if err != nil {
-		return err
-	}
-	addonInformerFactory := addoninformers.NewSharedInformerFactory(addonClient, 10*time.Minute)
-	addonLister := addonInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Lister()
-	addonConfigLister := addonInformerFactory.Addon().V1alpha1().AddOnDeploymentConfigs().Lister()
-
-	go addonInformerFactory.Start(ctx.Done())
-
-	// clusterClient and lister
-	clusterClient, err := clusterv1client.NewForConfig(kubeConfig)
-	if err != nil {
-		return err
-	}
-	clusterInformerFactory := clusterv1informers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
-	clusterLister := clusterInformerFactory.Cluster().V1().ManagedClusters().Lister()
-
-	go clusterInformerFactory.Start(ctx.Done())
-
-	// workClient
-	workClient, err := workv1client.NewForConfig(kubeConfig)
-	if err != nil {
-		return err
-	}
-
 	// New controller manager
 	mgr, err := manager.New(kubeConfig, manager.Options{
 		Scheme:                 scheme,
@@ -126,13 +93,6 @@ func runControllerManager() error {
 	err = registerCertController(certificatesNamespace, signerSecretName, signerSecretNamespace, secertLister, secertClient, mgr)
 	if err != nil {
 		klog.Error(err, "unable to set up cert-controller")
-		return err
-	}
-
-	// Register DeployController
-	err = registerDeployController(addonLister, addonConfigLister, clusterLister, workClient, mgr)
-	if err != nil {
-		klog.Error(err, "unable to set up deploy-controller")
 		return err
 	}
 

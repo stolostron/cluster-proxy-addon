@@ -29,6 +29,7 @@ var (
 	certificatesNamespace string
 	signerSecretName      string
 	signerSecretNamespace string
+	agentImage            string
 )
 
 func addFlagsForCertController(cmd *cobra.Command) {
@@ -36,6 +37,7 @@ func addFlagsForCertController(cmd *cobra.Command) {
 
 	cmd.Flags().StringVar(&signerSecretName, "signer-secret-name", "cluster-proxy-signer", "The name of the secret that contains the signer certificate and key.") // the default value align with the signer-secret-name in manager-deployment.yaml.
 	cmd.Flags().StringVar(&signerSecretNamespace, "signer-secret-namespace", "default", "The namespace where the secret is stored.")
+	cmd.Flags().StringVar(&agentImage, "agent-image", "", "The image of agent") // TODO: remove this flag after the template in the backplane-operator repo is removed.
 }
 
 // reconcileServerCertificates sign certificates for the server with the signer ca created by the cluster-proxy.
