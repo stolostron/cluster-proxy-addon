@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -102,7 +102,7 @@ var _ = Describe("Requests through Cluster-Proxy", func() {
 			Expect(err).To(BeNil())
 
 			var stdout, stderr bytes.Buffer
-			err = exec.Stream(remotecommand.StreamOptions{
+			err = exec.StreamWithContext(context.Background(), remotecommand.StreamOptions{
 				Stdin:  nil,
 				Stdout: &stdout,
 				Stderr: &stderr,
@@ -121,30 +121,40 @@ var _ = Describe("Requests through Cluster-Proxy", func() {
 			req, err := http.NewRequest("GET", targetHost, nil)
 			Expect(err).To(BeNil())
 
-			// Get serviceaccount openshift-monitoring/prometheus-k8s
-			sa, err := kubeClient.CoreV1().ServiceAccounts("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
+			// Create secret token for serviceaccount openshift-monitoring/prometheus-k8s
+			_, err = kubeClient.CoreV1().Secrets("openshift-monitoring").Create(context.Background(), &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "prometheus-k8s-token",
+					Annotations: map[string]string{
+						"kubernetes.io/service-account.name": "prometheus-k8s",
+					},
+				},
+				Type: "kubernetes.io/service-account-token",
+			}, metav1.CreateOptions{})
 			Expect(err).To(BeNil())
 
-			// Find token secret
-			var token string
-			for _, secret := range sa.Secrets {
-				if strings.HasPrefix(secret.Name, "prometheus-k8s-token") {
-					// Get token
-					tokenSecret, err := kubeClient.CoreV1().Secrets("openshift-monitoring").Get(context.Background(), secret.Name, metav1.GetOptions{})
-					Expect(err).To(BeNil())
-					token = string(tokenSecret.Data["token"])
-					break
+			var prometheusk8sToken string
+			Eventually(func() error {
+				tokenSecret, err := kubeClient.CoreV1().Secrets("openshift-monitoring").Get(context.Background(), "prometheus-k8s-token", metav1.GetOptions{})
+				if err != nil {
+					return err
 				}
-			}
+				token, ok := tokenSecret.Data["token"]
+				if !ok {
+					return fmt.Errorf("should containe token in secret %s", tokenSecret.Name)
+				}
+				prometheusk8sToken = string(token)
+				return nil
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 
 			// Add token to request header
-			req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+			req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", prometheusk8sToken))
 
 			resp, err := clusterProxyHttpClient.Do(req)
 			Expect(err).To(BeNil())
 			defer resp.Body.Close()
 
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			Expect(err).To(BeNil())
 			fmt.Println("response:", string(body))
 
