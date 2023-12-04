@@ -227,31 +227,30 @@ func prepareClusterProxyClient() {
 	Expect(err).To(BeNil())
 	rootCA := ca.Data["ca.crt"]
 
-	By("Get secret token for serviceAccount")
+	By("Creat secret token for serviceAccount")
+	_, err = kubeClient.CoreV1().Secrets(hubInstallNamespace).Create(context.Background(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster-proxy-test-token",
+			Namespace: hubInstallNamespace,
+			Annotations: map[string]string{
+				"kubernetes.io/service-account.name": serviceAccountName,
+			},
+		},
+		Type: "kubernetes.io/service-account-token",
+	}, metav1.CreateOptions{})
+	Expect(err).To(BeNil())
 
 	Eventually(func() error {
-		sa, err := kubeClient.CoreV1().ServiceAccounts(hubInstallNamespace).Get(context.Background(), serviceAccountName, metav1.GetOptions{})
+		tokenSecret, err := kubeClient.CoreV1().Secrets(hubInstallNamespace).Get(context.Background(), "cluster-proxy-test-token", metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
-
-		for _, sec := range sa.Secrets {
-			if !strings.Contains(sec.Name, "token") {
-				continue
-			}
-			secret, err := kubeClient.CoreV1().Secrets(hubInstallNamespace).Get(context.Background(), sec.Name, metav1.GetOptions{})
-			if err != nil {
-				return err
-			}
-			token, ok := secret.Data["token"]
-			if !ok {
-				return fmt.Errorf("should containe token in secret %s", sec.Name)
-			}
-			serviceAccountToken = string(token)
-			return nil
+		token, ok := tokenSecret.Data["token"]
+		if !ok {
+			return fmt.Errorf("should containe token in secret %s", tokenSecret.Name)
 		}
-
-		return fmt.Errorf("should containe token in secret of the serviceaccount")
+		serviceAccountToken = string(token)
+		return nil
 	}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 
 	By("Create kubeclient using cluster-proxy kubeconfig and http client to access specified services")
