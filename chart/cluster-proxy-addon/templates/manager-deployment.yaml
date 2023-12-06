@@ -91,6 +91,14 @@ spec:
             - --agent-install-namespace={{ .Values.spokeAddonNamespace }}
             - --agent-install-all=true
             - --enable-kube-api-proxy=false
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
         {{- if .Values.pullSecret }}
       imagePullSecrets:
       - name: {{ .Values.pullSecret }}

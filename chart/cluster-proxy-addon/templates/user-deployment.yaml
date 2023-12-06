@@ -104,6 +104,8 @@ spec:
             drop:
             - ALL
           privileged: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
       - name: user-server
         image: {{ .Values.global.imageOverrides.cluster_proxy_addon }}
         imagePullPolicy: {{ .Values.global.pullPolicy }}
@@ -136,6 +138,8 @@ spec:
             drop:
             - ALL
           privileged: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
         livenessProbe:
           httpGet:
             path: /healthz
