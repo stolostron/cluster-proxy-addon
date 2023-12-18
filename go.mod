@@ -8,7 +8,7 @@ require (
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/onsi/ginkgo/v2 v2.6.0
 	github.com/onsi/gomega v1.24.1
-	github.com/openshift/build-machinery-go v0.0.0-20220429084610-baff9f8d23b3
+	github.com/openshift/build-machinery-go v0.0.0-20230306181456-d321ffa04533
 	github.com/openshift/library-go v0.0.0-20220525173854-9b950a41acdc
 	github.com/spf13/cobra v1.6.0
 	github.com/spf13/pflag v1.0.5
@@ -19,7 +19,7 @@ require (
 	k8s.io/component-base v0.26.7
 	k8s.io/klog/v2 v2.80.1
 	open-cluster-management.io/addon-framework v0.6.1
-	open-cluster-management.io/api v0.10.1
+	open-cluster-management.io/api v0.12.0
 	open-cluster-management.io/cluster-proxy v0.3.0
 	sigs.k8s.io/apiserver-network-proxy v0.0.27
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.1.4
