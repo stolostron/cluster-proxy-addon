@@ -24,6 +24,8 @@ import (
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
 func init() {
@@ -120,6 +122,7 @@ func runControllerManager() error {
 
 // In the previous version, cluster-proxy-addon create a manifestwork
 func deleteClusterProxyServiceProxy(ctx context.Context, kubeconfig *rest.Config) error {
+	klog.Info("delete manifestwork addon-cluster-proxy-service-proxy in managedclusters")
 	clusterClient, err := clusterclient.NewForConfig(kubeconfig)
 	if err != nil {
 		return err
@@ -135,6 +138,9 @@ func deleteClusterProxyServiceProxy(ctx context.Context, kubeconfig *rest.Config
 		return err
 	}
 
+	klog.Infof("found %d managedclusters", len(managedclusters.Items))
+
+	errs := []error{}
 	for _, mc := range managedclusters.Items {
 		// get manifestwork, if the manifestwork is not found, do nothing
 		_, err := workClient.WorkV1().ManifestWorks(mc.Name).Get(ctx, "addon-cluster-proxy-service-proxy", metav1.GetOptions{})
@@ -143,15 +149,17 @@ func deleteClusterProxyServiceProxy(ctx context.Context, kubeconfig *rest.Config
 				klog.Infof("manifestwork addon-cluster-proxy-service-proxy not found in managedcluster %s", mc.Name)
 				continue
 			}
-			return fmt.Errorf("failed to get manifestwork addon-cluster-proxy-service-proxy in managedcluster %s: %v", mc.Name, err)
+			errs = append(errs, fmt.Errorf("failed to get manifestwork addon-cluster-proxy-service-proxy in managedcluster %s: %v", mc.Name, err))
+			continue
 		}
 
 		// delete manifestwork
 		err = workClient.WorkV1().ManifestWorks(mc.Name).Delete(ctx, "addon-cluster-proxy-service-proxy", metav1.DeleteOptions{})
 		if err != nil {
-			return fmt.Errorf("failed to delete manifestwork addon-cluster-proxy-service-proxy in managedcluster %s: %v", mc.Name, err)
+			errs = append(errs, fmt.Errorf("failed to delete manifestwork addon-cluster-proxy-service-proxy in managedcluster %s: %v", mc.Name, err))
+			continue
 		}
 	}
 
-	return nil
+	return utilerrors.NewAggregate(errs)
 }
