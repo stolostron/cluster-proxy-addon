@@ -52,8 +52,14 @@ type AgentAddonOptions struct {
 	// InstallStrategy defines that addon should be created in which clusters.
 	// Addon will not be installed automatically until a ManagedClusterAddon is applied to the cluster's
 	// namespace if InstallStrategy is nil.
+	// Deprecated: use installStrategy config in ClusterManagementAddOn API instead
 	// +optional
 	InstallStrategy *InstallStrategy
+
+	// Updaters select a set of resources and define the strategies to update them.
+	// UpdateStrategy is Update if no Updater is defined for a resource.
+	// +optional
+	Updaters []Updater
 
 	// HealthProber defines how is the healthiness status of the ManagedClusterAddon probed.
 	// Note that the prescribed prober type here only applies to the automatically installed
@@ -70,6 +76,19 @@ type AgentAddonOptions struct {
 	// SupportedConfigGVRs is a list of addon supported configuration GroupVersionResource
 	// each configuration GroupVersionResource should be unique
 	SupportedConfigGVRs []schema.GroupVersionResource
+
+	// AgentDeployTriggerClusterFilter defines the filter func to trigger the agent deploy/redploy when cluster info is
+	// changed. Addons that need information from the ManagedCluster resource when deploying the agent should use this
+	// field to set what information they need, otherwise the expected/up-to-date agent may be deployed delayed since
+	// the default filter func returns false when the ManagedCluster resource is updated.
+	//
+	// For example, the agentAddon needs information from the ManagedCluster annotation, it can set the filter function
+	// like:
+	//
+	//	AgentDeployTriggerClusterFilter: func(old, new *clusterv1.ManagedCluster) bool {
+	//	 return !equality.Semantic.DeepEqual(old.Annotations, new.Annotations)
+	//	}
+	AgentDeployTriggerClusterFilter func(old, new *clusterv1.ManagedCluster) bool
 }
 
 type CSRSignerFunc func(csr *certificatesv1.CertificateSigningRequest) []byte
@@ -88,6 +107,18 @@ type RegistrationOption struct {
 	// A csr will be created from the managed cluster for addon agent with each CSRConfiguration.
 	// +required
 	CSRConfigurations func(cluster *clusterv1.ManagedCluster) []addonapiv1alpha1.RegistrationConfig
+
+	// Namespace is the namespace where registraiton credential will be put on the managed cluster. It
+	// will be overridden by installNamespace on ManagedClusterAddon spec if set
+	// Deprecated: use AgentInstallNamespace instead
+	Namespace string
+
+	// AgentInstallNamespace returns the namespace where registration credential will be put on the managed cluster.
+	// It will override the installNamespace on ManagedClusterAddon spec if set and the returned value is not empty.
+	// Note: Set this very carefully. If this is set, the addon agent must be deployed in the same namespace, which
+	// means when implementing Manifests function in AgentAddon interface, the namespace of the addon agent manifest
+	// must be set to the same value returned by this function.
+	AgentInstallNamespace func(addon *addonapiv1alpha1.ManagedClusterAddOn) string
 
 	// CSRApproveCheck checks whether the addon agent registration should be approved by the hub.
 	// Addon hub controller can implement this func to auto-approve all the CSRs. A better CSR check is
@@ -133,6 +164,14 @@ func (s *InstallStrategy) GetManagedClusterFilter() func(cluster *clusterv1.Mana
 	return s.managedClusterFilter
 }
 
+type Updater struct {
+	// ResourceIdentifier sets what resources the strategy applies to
+	ResourceIdentifier workapiv1.ResourceIdentifier
+
+	// UpdateStrategy defines the strategy used to update the manifests.
+	UpdateStrategy workapiv1.UpdateStrategy
+}
+
 type HealthProber struct {
 	Type HealthProberType
 
@@ -151,7 +190,7 @@ type WorkHealthProber struct {
 
 // ProbeField defines the field of a resource to be probed
 type ProbeField struct {
-	// ResourceIdentifier sets what resource shoule be probed
+	// ResourceIdentifier sets what resource should be probed
 	ResourceIdentifier workapiv1.ResourceIdentifier
 
 	// ProbeRules sets the rules to probe the field
@@ -161,7 +200,7 @@ type ProbeField struct {
 type HealthProberType string
 
 const (
-	// HealthProberTypeLease indicates the healthiness status will be refreshed, which is
+	// HealthProberTypeNone indicates the healthiness status will be refreshed, which is
 	// leaving the healthiness of ManagedClusterAddon to an empty string.
 	HealthProberTypeNone HealthProberType = "None"
 	// HealthProberTypeLease indicates the healthiness of the addon is connected with the
@@ -175,6 +214,10 @@ const (
 	// clusters. The addon framework will check if the work is Available on the spoke. In addition
 	// user can define a prober to check more detailed status based on status feedback from work.
 	HealthProberTypeWork HealthProberType = "Work"
+	// HealthProberTypeDeploymentAvailability indicates the healthiness of the addon is connected
+	// with the availability of the corresponding agent deployment resources on the managed cluster.
+	// It's a special case of HealthProberTypeWork.
+	HealthProberTypeDeploymentAvailability HealthProberType = "DeploymentAvailability"
 )
 
 func KubeClientSignerConfigurations(addonName, agentName string) func(cluster *clusterv1.ManagedCluster) []addonapiv1alpha1.RegistrationConfig {

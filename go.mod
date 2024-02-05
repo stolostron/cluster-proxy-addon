@@ -1,6 +1,6 @@
 module github.com/stolostron/cluster-proxy-addon
 
-go 1.19
+go 1.21
 
 replace golang.org/x/text => golang.org/x/text v0.3.8 // CVE-2022-32149
 
@@ -10,7 +10,7 @@ require (
 	github.com/onsi/gomega v1.24.1
 	github.com/openshift/build-machinery-go v0.0.0-20230306181456-d321ffa04533
 	github.com/openshift/library-go v0.0.0-20220525173854-9b950a41acdc
-	github.com/spf13/cobra v1.6.0
+	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
 	google.golang.org/grpc v1.49.0
 	k8s.io/api v0.26.7
@@ -18,7 +18,7 @@ require (
 	k8s.io/client-go v0.26.7
 	k8s.io/component-base v0.26.7
 	k8s.io/klog/v2 v2.80.1
-	open-cluster-management.io/addon-framework v0.6.1
+	open-cluster-management.io/addon-framework v0.8.0
 	open-cluster-management.io/api v0.12.0
 	open-cluster-management.io/cluster-proxy v0.3.0
 	sigs.k8s.io/apiserver-network-proxy v0.0.27
