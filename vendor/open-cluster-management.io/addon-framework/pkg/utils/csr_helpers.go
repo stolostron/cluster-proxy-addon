@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -18,9 +17,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/klog/v2"
-	"open-cluster-management.io/addon-framework/pkg/agent"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+
+	"open-cluster-management.io/addon-framework/pkg/agent"
 )
 
 var serialNumberLimit = new(big.Int).Lsh(big.NewInt(1), 128)
@@ -28,7 +28,11 @@ var serialNumberLimit = new(big.Int).Lsh(big.NewInt(1), 128)
 // DefaultSignerWithExpiry generates a signer func for addon agent to sign the csr using caKey and caData with expiry date.
 func DefaultSignerWithExpiry(caKey, caData []byte, duration time.Duration) agent.CSRSignerFunc {
 	return func(csr *certificatesv1.CertificateSigningRequest) []byte {
-		blockTlsCrt, _ := pem.Decode(caData) // note: the second return value is not error for pem.Decode; it's ok to omit it.
+		blockTlsCrt, _ := pem.Decode(caData)
+		if blockTlsCrt == nil {
+			klog.Errorf("Failed to decode cert")
+			return nil
+		}
 		certs, err := x509.ParseCertificates(blockTlsCrt.Bytes)
 		if err != nil {
 			klog.Errorf("Failed to parse cert: %v", err)
@@ -36,9 +40,13 @@ func DefaultSignerWithExpiry(caKey, caData []byte, duration time.Duration) agent
 		}
 
 		blockTlsKey, _ := pem.Decode(caKey)
+		if blockTlsKey == nil {
+			klog.Errorf("Failed to decode key")
+			return nil
+		}
 
 		// For now only PKCS#1 is supported which assures the private key algorithm is RSA.
-		// TODO: Compatiblity w/ PKCS#8 key e.g. EC algorithm
+		// TODO: Compatibility w/ PKCS#8 key e.g. EC algorithm
 		key, err := x509.ParsePKCS1PrivateKey(blockTlsKey.Bytes)
 		if err != nil {
 			klog.Errorf("Failed to parse key: %v", err)
@@ -111,7 +119,7 @@ func signCSR(csr *certificatesv1.CertificateSigningRequest, caCert *x509.Certifi
 func parseCSR(pemBytes []byte) (*x509.CertificateRequest, error) {
 	block, _ := pem.Decode(pemBytes)
 	if block == nil || block.Type != "CERTIFICATE REQUEST" {
-		return nil, errors.New("PEM block type must be CERTIFICATE REQUEST")
+		return nil, fmt.Errorf("PEM block type must be CERTIFICATE REQUEST")
 	}
 	csr, err := x509.ParseCertificateRequest(block.Bytes)
 	if err != nil {
@@ -122,40 +130,42 @@ func parseCSR(pemBytes []byte) (*x509.CertificateRequest, error) {
 
 // DefaultCSRApprover approve the csr when addon agent uses default group and default user to sign csr.
 func DefaultCSRApprover(agentName string) agent.CSRApproveFunc {
-	return func(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn, csr *certificatesv1.CertificateSigningRequest) bool {
+	return func(
+		cluster *clusterv1.ManagedCluster,
+		addon *addonapiv1alpha1.ManagedClusterAddOn,
+		csr *certificatesv1.CertificateSigningRequest) bool {
 		defaultGroups := agent.DefaultGroups(cluster.Name, addon.Name)
 
 		defaultUser := agent.DefaultUser(cluster.Name, addon.Name, agentName)
-
 		// check org field and commonName field
 		block, _ := pem.Decode(csr.Spec.Request)
 		if block == nil || block.Type != "CERTIFICATE REQUEST" {
-			klog.Infof("CSR Approve Check Falied csr %q was not recognized: PEM block type is not CERTIFICATE REQUEST", csr.Name)
+			klog.Infof("CSR Approve Check Failed csr %q was not recognized: PEM block type is not CERTIFICATE REQUEST", csr.Name)
 			return false
 		}
 
 		x509cr, err := x509.ParseCertificateRequest(block.Bytes)
 		if err != nil {
-			klog.Infof("CSR Approve Check Falied csr %q was not recognized: %v", csr.Name, err)
+			klog.Infof("CSR Approve Check Failed csr %q was not recognized: %v", csr.Name, err)
 			return false
 		}
 
 		requestingOrgs := sets.NewString(x509cr.Subject.Organization...)
 		if requestingOrgs.Len() != 3 {
-			klog.Infof("CSR Approve Check Falied csr %q org is not equal to 3", csr.Name)
+			klog.Infof("CSR Approve Check Failed csr %q org is not equal to 3", csr.Name)
 			return false
 		}
 
 		for _, group := range defaultGroups {
 			if !requestingOrgs.Has(group) {
-				klog.Infof("CSR Approve Check Falied csr requesting orgs doesn't contain %s", group)
+				klog.Infof("CSR Approve Check Failed csr requesting orgs doesn't contain %s", group)
 				return false
 			}
 		}
 
 		// check commonName field
 		if defaultUser != x509cr.Subject.CommonName {
-			klog.Infof("CSR Approve Check Falied commonName not right; request %s get %s", x509cr.Subject.CommonName, defaultUser)
+			klog.Infof("CSR Approve Check Failed commonName not right; request %s get %s", x509cr.Subject.CommonName, defaultUser)
 			return false
 		}
 

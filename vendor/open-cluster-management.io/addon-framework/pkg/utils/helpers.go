@@ -3,23 +3,28 @@ package utils
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
 
 	jsonpatch "github.com/evanphx/json-patch"
-	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/v2"
+	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
+
+	"open-cluster-management.io/addon-framework/pkg/agent"
 )
 
 func MergeRelatedObjects(modified *bool, objs *[]addonapiv1alpha1.ObjectReference, obj addonapiv1alpha1.ObjectReference) {
@@ -161,7 +166,7 @@ func ApplySecret(ctx context.Context, client coreclientv1.SecretsGetter, require
 		actual, err = client.Secrets(required.Namespace).Update(ctx, existingCopy, metav1.UpdateOptions{})
 
 		if err == nil {
-			return actual, true, err
+			return actual, true, nil
 		}
 		if !strings.Contains(err.Error(), "field is immutable") {
 			return actual, true, err
@@ -279,6 +284,110 @@ func PatchAddonCondition(ctx context.Context, addonClient addonv1alpha1client.In
 	}
 
 	klog.V(2).Infof("Patching addon %s/%s condition with %s", new.Namespace, new.Name, string(patchBytes))
-	_, err = addonClient.AddonV1alpha1().ManagedClusterAddOns(new.Namespace).Patch(ctx, new.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{}, "status")
+	_, err = addonClient.AddonV1alpha1().ManagedClusterAddOns(new.Namespace).Patch(
+		ctx, new.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{}, "status")
 	return err
+}
+
+// AddonManagementFilterFunc is to check if the addon should be managed by addon manager or self-managed
+type AddonManagementFilterFunc func(cma *addonapiv1alpha1.ClusterManagementAddOn) bool
+
+func ManagedByAddonManager(obj interface{}) bool {
+	accessor, _ := meta.Accessor(obj)
+	annotations := accessor.GetAnnotations()
+	if len(annotations) == 0 {
+		return false
+	}
+
+	value, ok := annotations[addonapiv1alpha1.AddonLifecycleAnnotationKey]
+	if !ok {
+		return false
+	}
+
+	return value == addonapiv1alpha1.AddonLifecycleAddonManagerAnnotationValue
+}
+
+func ManagedBySelf(agentAddons map[string]agent.AgentAddon) func(obj interface{}) bool {
+	return func(obj interface{}) bool {
+		accessor, _ := meta.Accessor(obj)
+		if _, ok := agentAddons[accessor.GetName()]; !ok {
+			return false
+		}
+
+		annotations := accessor.GetAnnotations()
+
+		if len(annotations) == 0 {
+			return true
+		}
+
+		value, ok := annotations[addonapiv1alpha1.AddonLifecycleAnnotationKey]
+		if !ok {
+			return true
+		}
+
+		return value == addonapiv1alpha1.AddonLifecycleSelfManageAnnotationValue
+	}
+}
+
+func FilterByAddonName(agentAddons map[string]agent.AgentAddon) func(obj interface{}) bool {
+	return func(obj interface{}) bool {
+		accessor, _ := meta.Accessor(obj)
+		_, ok := agentAddons[accessor.GetName()]
+		return ok
+	}
+}
+
+func IsOwnedByCMA(addon *addonapiv1alpha1.ManagedClusterAddOn) bool {
+	for _, owner := range addon.OwnerReferences {
+		if owner.Kind != "ClusterManagementAddOn" {
+			continue
+		}
+		if owner.Name != addon.Name {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// GetSpecHash returns the sha256 hash of the spec field of the given object
+func GetSpecHash(obj *unstructured.Unstructured) (string, error) {
+	if obj == nil {
+		return "", fmt.Errorf("object is nil")
+	}
+	spec, ok := obj.Object["spec"]
+	if !ok {
+		return "", fmt.Errorf("object has no spec field")
+	}
+
+	specBytes, err := json.Marshal(spec)
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha256.Sum256(specBytes)
+
+	return fmt.Sprintf("%x", hash), nil
+}
+
+// MapValueChanged returns true if the value of the given key in the new map is different from the old map
+func MapValueChanged(old, new map[string]string, key string) bool {
+	oval, ok := old[key]
+	nval, nk := new[key]
+	if !ok && !nk {
+		return false
+	}
+	if ok && nk {
+		return oval != nval
+	}
+	return true
+}
+
+// ClusterImageRegistriesAnnotationChanged returns true if the value of the ClusterImageRegistriesAnnotationKey
+// in the new managed cluster annotation is different from the old managed cluster annotation
+func ClusterImageRegistriesAnnotationChanged(old, new *clusterv1.ManagedCluster) bool {
+	if new == nil || old == nil {
+		return false
+	}
+	return MapValueChanged(old.Annotations, new.Annotations, clusterv1.ClusterImageRegistriesAnnotationKey)
 }
