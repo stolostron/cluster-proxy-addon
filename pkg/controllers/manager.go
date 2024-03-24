@@ -76,10 +76,22 @@ func runControllerManager() error {
 
 	// In MCE 2.5, cluster-proxy-addon will delete the manifestwork that used to create the cluster-proxy-service-proxy
 	// TODO: remove this function in 2.6. @xuezhaojun
-	err := deleteClusterProxyServiceProxy(ctx, kubeConfig)
-	if err != nil {
-		return err
-	}
+	stopSignal := time.After(10 * time.Minute)
+	go func() {
+		for {
+			select {
+			case <-stopSignal:
+				klog.Info("Stopping deletion of manifestwork")
+				return
+			default:
+				err := deleteClusterProxyServiceProxy(ctx, kubeConfig)
+				if err != nil {
+					klog.Error(err, "error deleting manifestwork")
+				}
+				time.Sleep(1 * time.Minute)
+			}
+		}
+	}()
 
 	// secret client and lister
 	nativeClient, err := kubernetes.NewForConfig(kubeConfig)
