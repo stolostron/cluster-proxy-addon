@@ -71,7 +71,7 @@ func registerCertController(certNamespace string,
 		return err
 	}
 
-	if err := c.Watch(&source.Kind{Type: &corev1.Secret{}}, &secretHandler{
+	if err := c.Watch(source.Kind(mgr.GetCache(), &corev1.Secret{}), &secretHandler{
 		signerSecretName:      signerSecretName,
 		singerSecretNamespace: signerSecretNamespace,
 	}); err != nil {
@@ -112,7 +112,7 @@ type secretHandler struct {
 
 var _ handler.EventHandler = &secretHandler{}
 
-func (h *secretHandler) Create(evt event.CreateEvent, q workqueue.RateLimitingInterface) {
+func (h *secretHandler) Create(ctx context.Context, evt event.CreateEvent, q workqueue.RateLimitingInterface) {
 	if !h.isSignerSecret(evt.Object) {
 		return
 	}
@@ -122,7 +122,7 @@ func (h *secretHandler) Create(evt event.CreateEvent, q workqueue.RateLimitingIn
 	}})
 }
 
-func (h *secretHandler) Update(evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
+func (h *secretHandler) Update(ctx context.Context, evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
 	if !h.isSignerSecret(evt.ObjectNew) {
 		return
 	}
@@ -132,7 +132,7 @@ func (h *secretHandler) Update(evt event.UpdateEvent, q workqueue.RateLimitingIn
 	}})
 }
 
-func (h *secretHandler) Delete(evt event.DeleteEvent, q workqueue.RateLimitingInterface) {
+func (h *secretHandler) Delete(ctx context.Context, evt event.DeleteEvent, q workqueue.RateLimitingInterface) {
 	if !h.isSignerSecret(evt.Object) {
 		return
 	}
@@ -142,7 +142,7 @@ func (h *secretHandler) Delete(evt event.DeleteEvent, q workqueue.RateLimitingIn
 	}})
 }
 
-func (h *secretHandler) Generic(evt event.GenericEvent, q workqueue.RateLimitingInterface) {
+func (h *secretHandler) Generic(ctx context.Context, evt event.GenericEvent, q workqueue.RateLimitingInterface) {
 	if !h.isSignerSecret(evt.Object) {
 		return
 	}

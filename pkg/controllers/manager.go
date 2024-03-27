@@ -18,10 +18,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -94,9 +96,13 @@ func runControllerManager() error {
 
 	// New controller manager
 	mgr, err := manager.New(kubeConfig, manager.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
+		Scheme: scheme,
+		Metrics: metricsserver.Options{
+			BindAddress: metricsAddr,
+		},
+		WebhookServer: webhook.NewServer(webhook.Options{
+			Port: 9443,
+		}),
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "cluster-proxy-service-proxy",
