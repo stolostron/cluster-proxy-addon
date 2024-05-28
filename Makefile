@@ -93,6 +93,8 @@ deploy-addon-for-e2e: ensure-helm
 	--set global.imageOverrides.cluster_proxy_addon="$(CLUSTER_PROXY_ADDON_IMAGE)" \
 	--set global.imageOverrides.cluster_proxy="$(IMAGE_CLUSTER_PROXY)" \
 	--set cluster_basedomain="$(shell $(KUBECTL) get ingress.config.openshift.io cluster -o=jsonpath='{.spec.domain}')"
+	$(KUBECTL) apply -f test/e2e/placement/ns.yaml
+	$(KUBECTL) apply -f test/e2e/placement/
 .PHONY: deploy-addon-for-e2e
 
 test-e2e: deploy-ocm deploy-addon-for-e2e build-e2e
