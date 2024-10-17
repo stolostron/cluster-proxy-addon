@@ -113,7 +113,15 @@ func checkAddonStatus() {
 				return err
 			}
 			if d.Status.AvailableReplicas < 1 {
-				return fmt.Errorf("available replicas for %s should >= 1, but get %d", deployment, d.Status.AvailableReplicas)
+				podlist, err := kubeClient.CoreV1().Pods(hubInstallNamespace).List(context.Background(), metav1.ListOptions{})
+				if err != nil {
+					return err
+				}
+				fmt.Println("podlist on hub:")
+				for _, pod := range podlist.Items {
+					fmt.Println(pod.Name)
+				}
+				return fmt.Errorf("available replicas for %s should >= 1, but get %d, deployment: %s", deployment, d.Status.AvailableReplicas, d.String())
 			}
 		}
 
