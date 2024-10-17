@@ -23,7 +23,26 @@ import (
 	addonutils "open-cluster-management.io/addon-framework/pkg/utils"
 	konnectivity "sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client"
 	"sigs.k8s.io/apiserver-network-proxy/pkg/util"
+
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
+
+var (
+	scheme = runtime.NewScheme()
+)
+
+func init() {
+	utilruntime.Must(addonv1alpha1.Install(scheme))
+	//+kubebuilder:scaffold:scheme
+}
 
 func NewUserServerCommand() *cobra.Command {
 	userServer := newUserServer()
@@ -58,6 +77,9 @@ type userServer struct {
 
 	serviceProxyCACertPath string
 	agentInstallNamespace  string
+
+	elected <-chan struct{}
+	addonNamespaceMapper
 }
 
 func (k *userServer) AddFlags(cmd *cobra.Command) {
@@ -135,6 +157,49 @@ func (k *userServer) init(ctx context.Context) error {
 		}
 		return tunnel, nil
 	}
+
+	// start manager to watch addons
+	kubeConfig := config.GetConfigOrDie()
+	addonClient, err := addonclient.NewForConfig(kubeConfig)
+	if err != nil {
+		klog.Fatal(err)
+	}
+
+	clusterProxyAddons, err := addonClient.AddonV1alpha1().ManagedClusterAddOns("").List(ctx, metav1.ListOptions{
+		FieldSelector: "metadata.name=" + constant.AddonName,
+	})
+	if err != nil {
+		klog.Fatal(err)
+	}
+
+	for _, addon := range clusterProxyAddons.Items {
+		k.addonNamespaceMapper[addon.Namespace] = addon.Status.Namespace
+	}
+
+	mgr, err := manager.New(kubeConfig, manager.Options{
+		Scheme:           scheme,
+		LeaderElection:   true,
+		LeaderElectionID: "cluster-proxy-user-server",
+	})
+	if err != nil {
+		klog.Fatal(err)
+	}
+
+	err = ctrl.NewControllerManagedBy(mgr).For(&addonv1alpha1.ManagedClusterAddOn{}).Complete(&addonReconciler{
+		addonClient: addonClient,
+	})
+	if err != nil {
+		klog.Fatal(err)
+	}
+
+	mgr.Elected()
+
+	go func() {
+		klog.Info("start manager")
+		if err := mgr.Start(ctx); err != nil {
+			klog.Fatal(err)
+		}
+	}()
 	return nil
 }
 
@@ -163,8 +228,12 @@ func (k *userServer) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	}
 
 	// get service proxy host for current managed cluster
+	namespace, ok := k.addonNamespaceMapper[tsc.Cluster]
+	if !ok {
+		namespace = k.agentInstallNamespace
+	}
 
-	targetURL, err := url.Parse(utils.GetServiceProxyURL(tsc.Cluster, k.agentInstallNamespace, constant.ServiceProxyName))
+	targetURL, err := url.Parse(utils.GetServiceProxyURL(tsc.Cluster, namespace, constant.ServiceProxyName))
 	if err != nil {
 		http.Error(wr, err.Error(), http.StatusBadRequest)
 		return
@@ -238,6 +307,8 @@ func (k *userServer) Run(ctx context.Context) error {
 		Handler:   k,
 	}
 
+	<-k.elected
+	klog.Info("elected leader, start user-server")
 	err = s.ListenAndServeTLS(k.serverCert, k.serverKey)
 	if err != nil {
 		klog.Fatalf("failed to start user proxy server: %v", err)
@@ -245,3 +316,33 @@ func (k *userServer) Run(ctx context.Context) error {
 
 	return nil
 }
+
+type addonReconciler struct {
+	addonClient      addonclient.Interface
+	defaultNamespace string
+	addonNamespaceMapper
+}
+
+func (r *addonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	managedCluster := req.NamespacedName.Namespace
+	addonName := req.NamespacedName.Name
+
+	if addonName != constant.AddonName {
+		return ctrl.Result{}, nil
+	}
+
+	clusterProxyAddon, err := r.addonClient.AddonV1alpha1().ManagedClusterAddOns(managedCluster).Get(ctx, addonName, metav1.GetOptions{})
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	namespace := clusterProxyAddon.Status.Namespace
+	if namespace == "" {
+		namespace = r.defaultNamespace
+	}
+
+	r.addonNamespaceMapper[managedCluster] = namespace
+	return ctrl.Result{}, nil
+}
+
+type addonNamespaceMapper map[string]string
