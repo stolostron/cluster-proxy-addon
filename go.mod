@@ -2,8 +2,6 @@ module github.com/stolostron/cluster-proxy-addon
 
 go 1.21
 
-replace golang.org/x/text => golang.org/x/text v0.3.8 // CVE-2022-32149
-
 require (
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/onsi/ginkgo/v2 v2.13.0
