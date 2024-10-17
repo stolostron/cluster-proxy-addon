@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -86,13 +85,13 @@ func (s *serviceProxy) Run(ctx context.Context) error {
 	s.rootCAs = x509.NewCertPool()
 	// ca for accessing apiserver
 
-	apiserverPem, err := ioutil.ReadFile(rootCAFile)
+	apiserverPem, err := os.ReadFile(rootCAFile)
 	if err != nil {
 		return err
 	}
 	s.rootCAs.AppendCertsFromPEM(apiserverPem)
 	// ca for accessing ocp services
-	ocpserviceCAPem, err := ioutil.ReadFile(s.ocpserviceCA)
+	ocpserviceCAPem, err := os.ReadFile(s.ocpserviceCA)
 	if err != nil {
 		if os.IsNotExist(err) {
 			klog.Infof("ocpservice-ca is not provided")
