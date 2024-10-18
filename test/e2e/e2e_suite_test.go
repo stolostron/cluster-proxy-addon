@@ -149,7 +149,7 @@ func checkAddonStatus() {
 					podlog += string(podLog)
 				}
 			}
-			return fmt.Errorf("deployment %s is not running, %v, podlog: %s", "cluster-proxy-proxy-agent", err, podlog)
+			return fmt.Errorf("deployment %s is not running, %v, cluster-proxy-addon-manager podlog: %s", "cluster-proxy-proxy-agent", err, podlog)
 		}
 		if anpAgent.Status.AvailableReplicas < 1 {
 			return fmt.Errorf("available replicas for %s should be more than 1, but get %d", "anp-agent", anpAgent.Status.AvailableReplicas)
