@@ -139,16 +139,17 @@ func checkAddonStatus() {
 			if err != nil {
 				return err
 			}
+			podlog := ""
 			for _, pod := range podlist.Items {
 				if strings.Contains(pod.Name, "cluster-proxy-addon-manager") {
 					podLog, err := kubeClient.CoreV1().Pods(hubInstallNamespace).GetLogs(pod.Name, &corev1.PodLogOptions{}).DoRaw(context.Background())
 					if err != nil {
 						return err
 					}
-					fmt.Println(string(podLog))
+					podlog += string(podLog)
 				}
 			}
-			return fmt.Errorf("deployment %s is not running, %v", "cluster-proxy-proxy-agent", err)
+			return fmt.Errorf("deployment %s is not running, %v, podlog: %s", "cluster-proxy-proxy-agent", err, podlog)
 		}
 		if anpAgent.Status.AvailableReplicas < 1 {
 			return fmt.Errorf("available replicas for %s should be more than 1, but get %d", "anp-agent", anpAgent.Status.AvailableReplicas)
