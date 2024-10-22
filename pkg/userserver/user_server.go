@@ -5,11 +5,11 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strconv"
 	"time"
 
@@ -110,7 +110,7 @@ func (k *userServer) init(ctx context.Context) error {
 	}
 
 	// prepare ca for sevice proxy server
-	serviceProxyCaCert, err := ioutil.ReadFile(k.serviceProxyCACertPath)
+	serviceProxyCaCert, err := os.ReadFile(k.serviceProxyCACertPath)
 	if err != nil {
 		return err
 	}
