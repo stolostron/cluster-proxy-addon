@@ -23,6 +23,12 @@ import (
 	addonutils "open-cluster-management.io/addon-framework/pkg/utils"
 	konnectivity "sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client"
 	"sigs.k8s.io/apiserver-network-proxy/pkg/util"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
+	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
+	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func NewUserServerCommand() *cobra.Command {
@@ -58,6 +64,8 @@ type userServer struct {
 
 	serviceProxyCACertPath string
 	agentInstallNamespace  string
+
+	addonLister addonlisterv1alpha1.ManagedClusterAddOnLister
 }
 
 func (k *userServer) AddFlags(cmd *cobra.Command) {
@@ -135,6 +143,15 @@ func (k *userServer) init(ctx context.Context) error {
 		}
 		return tunnel, nil
 	}
+
+	addonClient, err := addonclient.NewForConfig(ctrl.GetConfigOrDie())
+	if err != nil {
+		return err
+	}
+	addonInformerFactory := addoninformers.NewSharedInformerFactory(addonClient, 30*time.Minute)
+	k.addonLister = addonInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Lister()
+	addonInformerFactory.Start(ctx.Done())
+
 	return nil
 }
 
@@ -163,8 +180,26 @@ func (k *userServer) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	}
 
 	// get service proxy host for current managed cluster
+	var namespace string
+	addon, err := k.addonLister.ManagedClusterAddOns(tsc.Cluster).Get(constant.AddonName)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// Use default namespace if addon is not found
+			namespace = k.agentInstallNamespace
+		} else {
+			http.Error(wr, err.Error(), http.StatusBadRequest)
+			return
+		}
+	} else {
+		// Use the namespace from the addon if found
+		if addon.Status.Namespace != "" {
+			namespace = addon.Status.Namespace
+		} else {
+			namespace = k.agentInstallNamespace
+		}
+	}
 
-	targetURL, err := url.Parse(utils.GetServiceProxyURL(tsc.Cluster, k.agentInstallNamespace, constant.ServiceProxyName))
+	targetURL, err := url.Parse(utils.GetServiceProxyURL(tsc.Cluster, namespace, constant.ServiceProxyName))
 	if err != nil {
 		http.Error(wr, err.Error(), http.StatusBadRequest)
 		return
