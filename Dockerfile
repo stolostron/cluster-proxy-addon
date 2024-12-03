@@ -4,7 +4,8 @@ WORKDIR /go/src/github.com/stolostron/cluster-proxy-addon
 
 COPY . .
 
-RUN make build-all
+RUN make build
+RUN make build-anp
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
