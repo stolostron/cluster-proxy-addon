@@ -218,8 +218,9 @@ func (k *userServer) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 		TLSClientConfig: &tls.Config{
-			RootCAs:    serviceProxyRootCA,
-			MinVersion: tls.VersionTLS12,
+			RootCAs:            serviceProxyRootCA,
+			MinVersion:         tls.VersionTLS12,
+			InsecureSkipVerify: true,
 		},
 		// golang http pkg automaticly upgrade http connection to http2 connection, but http2 can not upgrade to SPDY which used in "kubectl exec".
 		// set ForceAttemptHTTP2 = false to prevent auto http2 upgration
