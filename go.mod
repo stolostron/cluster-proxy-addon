@@ -3,10 +3,8 @@ module github.com/stolostron/cluster-proxy-addon
 go 1.22.5
 
 require (
-	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.32.0
-	github.com/openshift/build-machinery-go v0.0.0-20240419090851-af9c868bcf52
 	github.com/openshift/library-go v0.0.0-20240621150525-4bb4238aef81
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
