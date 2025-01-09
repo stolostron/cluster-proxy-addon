@@ -3,9 +3,9 @@ all: build
 
 HELM?=_output/linux-amd64/helm
 
-IMAGE_CLUSTER_PROXY?=quay.io/stolostron/cluster-proxy:main
+IMAGE_CLUSTER_PROXY?=quay.io/stolostron/cluster-proxy:backplane-2.5
 IMAGE_PULL_POLICY=Always
-IMAGE_TAG?=latest
+IMAGE_TAG?=2.4.7-BACKPLANE-2025-01-09-02-50-30
 
 # Using the following command to get the base domain of a OCP cluster
 # export CLUSTER_BASE_DOMAIN=$(kubectl get ingress.config.openshift.io cluster -o=jsonpath='{.spec.domain}')
@@ -70,7 +70,7 @@ build-e2e:
 
 deploy-ocm:
 	curl -L https://raw.githubusercontent.com/open-cluster-management-io/clusteradm/main/install.sh | INSTALL_DIR=$(PWD) bash
-	$(PWD)/clusteradm init --output-join-command-file join.sh --wait
+	$(PWD)/clusteradm init --bundle-version=v0.13.0 --output-join-command-file join.sh --wait
 	echo " loopback --force-internal-endpoint-lookup" >> join.sh && sh join.sh
 	$(PWD)/clusteradm accept --clusters loopback --wait 30
 	$(KUBECTL) wait --for=condition=ManagedClusterConditionAvailable managedcluster/loopback
@@ -86,7 +86,7 @@ ensure-helm:
 deploy-addon-for-e2e: ensure-helm
 	$(KUBECTL) apply -f chart/cluster-proxy-addon/crds/managedproxyconfigurations.yaml
 	$(KUBECTL) apply -f chart/cluster-proxy-addon/crds/managedproxyserviceresolvers.yaml
-	$(HELM) install \
+	helm install \
 	-n open-cluster-management-addon --create-namespace \
 	cluster-proxy-addon chart/cluster-proxy-addon \
 	--set global.pullPolicy="$(IMAGE_PULL_POLICY)" \
