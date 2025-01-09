@@ -21,6 +21,7 @@ import (
 )
 
 func main() {
+	fmt.Println("main")
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	klog.InitFlags(nil)
