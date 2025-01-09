@@ -227,7 +227,18 @@ func prepareClusterProxyClient() {
 	Expect(err).To(BeNil())
 	rootCA := ca.Data["ca.crt"]
 
-	By("Get secret token for serviceAccount")
+	By("Creat secret token for serviceAccount")
+	_, err = kubeClient.CoreV1().Secrets(hubInstallNamespace).Create(context.Background(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster-proxy-test-token",
+			Namespace: hubInstallNamespace,
+			Annotations: map[string]string{
+				"kubernetes.io/service-account.name": serviceAccountName,
+			},
+		},
+		Type: "kubernetes.io/service-account-token",
+	}, metav1.CreateOptions{})
+	Expect(err).To(BeNil())
 
 	Eventually(func() error {
 		sa, err := kubeClient.CoreV1().ServiceAccounts(hubInstallNamespace).Get(context.Background(), serviceAccountName, metav1.GetOptions{})
