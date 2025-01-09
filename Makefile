@@ -3,7 +3,7 @@ all: build
 
 HELM?=_output/linux-amd64/helm
 
-IMAGE_CLUSTER_PROXY?=quay.io/stolostron/cluster-proxy:main
+IMAGE_CLUSTER_PROXY?=quay.io/stolostron/cluster-proxy:backplane-2.5
 IMAGE_PULL_POLICY=Always
 IMAGE_TAG?=latest
 
@@ -70,7 +70,7 @@ build-e2e:
 
 deploy-ocm:
 	curl -L https://raw.githubusercontent.com/open-cluster-management-io/clusteradm/main/install.sh | INSTALL_DIR=$(PWD) bash
-	$(PWD)/clusteradm init --output-join-command-file join.sh --wait
+	$(PWD)/clusteradm init --bundle-version=v0.13.0 --output-join-command-file join.sh --wait
 	echo " loopback --force-internal-endpoint-lookup" >> join.sh && sh join.sh
 	$(PWD)/clusteradm accept --clusters loopback --wait 30
 	$(KUBECTL) wait --for=condition=ManagedClusterConditionAvailable managedcluster/loopback
