@@ -62,7 +62,7 @@ func registerCertController(certNamespace string,
 				Namespace: certNamespace,
 				Name:      constant.ServerCertSecretName,
 				Validity:  time.Hour * 24 * 180, // align with the signer ca by cluster-proxy
-				HostNames: []string{"*", "localhost", "127.0.0.1", "*.proxy"},
+				HostNames: []string{"*", "localhost", "127.0.0.1", "*.open-cluster-management.proxy"},
 				Lister:    secertLister,
 				Client:    secertGetter,
 			},
