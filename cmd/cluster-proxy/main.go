@@ -30,6 +30,8 @@ func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
+	fmt.Println("Starting cluster-proxy")
+
 	command := newClusterProxyCommand()
 	if err := command.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
