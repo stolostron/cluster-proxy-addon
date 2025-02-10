@@ -21,6 +21,7 @@ import (
 )
 
 func main() {
+	fmt.Println("cluster-proxy")
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	klog.InitFlags(nil)
