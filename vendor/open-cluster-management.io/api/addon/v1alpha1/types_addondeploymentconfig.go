@@ -8,7 +8,8 @@ import (
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AddOnDeploymentConfig represents a deployment configuration for an add-on.
+// AddOnDeploymentConfig represents a configuration to customize the deployments of an add-on.
+// For example, you can specify the NodePlacement to control the scheduling of the add-on agents.
 type AddOnDeploymentConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -34,6 +35,29 @@ type AddOnDeploymentConfigSpec struct {
 	// If the placement is an empty object, the placement will match all nodes and tolerate nothing.
 	// +optional
 	NodePlacement *NodePlacement `json:"nodePlacement,omitempty"`
+
+	// Registries describes how to override images used by the addon agent on the managed cluster.
+	// the following example will override image "quay.io/open-cluster-management/addon-agent" to
+	// "quay.io/ocm/addon-agent" when deploying the addon agent
+	//
+	// registries:
+	//   - source: quay.io/open-cluster-management/addon-agent
+	//     mirror: quay.io/ocm/addon-agent
+	//
+	// +optional
+	Registries []ImageMirror `json:"registries,omitempty"`
+
+	// ProxyConfig holds proxy settings for add-on agent on the managed cluster.
+	// Empty means no proxy settings is available.
+	// +optional
+	ProxyConfig ProxyConfig `json:"proxyConfig,omitempty"`
+
+	// AgentInstallNamespace is the namespace where the add-on agent should be installed on the managed cluster.
+	// +optional
+	// +kubebuilder:default=open-cluster-management-agent-addon
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+	AgentInstallNamespace string `json:"agentInstallNamespace,omitempty"`
 }
 
 // CustomizedVariable represents a customized variable for add-on deployment.
@@ -64,6 +88,39 @@ type NodePlacement struct {
 	// The default is an empty list.
 	// +optional
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+}
+
+// ImageMirror describes how to mirror images from a source
+type ImageMirror struct {
+	// Mirror is the mirrored registry of the Source. Will be ignored if Mirror is empty.
+	// +kubebuilder:validation:Required
+	// +required
+	Mirror string `json:"mirror"`
+
+	// Source is the source registry. All image registries will be replaced by Mirror if Source is empty.
+	// +optional
+	Source string `json:"source"`
+}
+
+// ProxyConfig describes the proxy settings for the add-on agent
+type ProxyConfig struct {
+	// HTTPProxy is the URL of the proxy for HTTP requests
+	// +optional
+	HTTPProxy string `json:"httpProxy,omitempty"`
+
+	// HTTPSProxy is the URL of the proxy for HTTPS requests
+	// +optional
+	HTTPSProxy string `json:"httpsProxy,omitempty"`
+
+	// CABundle is a CA certificate bundle to verify the proxy server.
+	// And it's only useful when HTTPSProxy is set and a HTTPS proxy server is specified.
+	// +optional
+	CABundle []byte `json:"caBundle,omitempty"`
+
+	// NoProxy is a comma-separated list of hostnames and/or CIDRs and/or IPs for which the proxy
+	// should not be used.
+	// +optional
+	NoProxy string `json:"noProxy,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
