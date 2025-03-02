@@ -19,7 +19,7 @@ require (
 	k8s.io/client-go v0.26.7
 	k8s.io/component-base v0.26.7
 	k8s.io/klog/v2 v2.80.1
-	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
+	k8s.io/utils v0.0.0-20241210054802-24370beab758
 	open-cluster-management.io/addon-framework v0.6.1
 	open-cluster-management.io/api v0.10.1
 	open-cluster-management.io/cluster-proxy v0.3.0
