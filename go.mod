@@ -7,7 +7,7 @@ require (
 	github.com/onsi/gomega v1.32.0
 	github.com/openshift/library-go v0.0.0-20240621150525-4bb4238aef81
 	github.com/spf13/cobra v1.8.0
-	github.com/spf13/pflag v1.0.5
+	github.com/spf13/pflag v1.0.6
 	google.golang.org/grpc v1.62.1
 	k8s.io/api v0.30.2
 	k8s.io/apimachinery v0.30.2
