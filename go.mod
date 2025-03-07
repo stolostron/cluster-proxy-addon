@@ -2,7 +2,7 @@ module github.com/stolostron/cluster-proxy-addon
 
 go 1.21
 
-replace golang.org/x/text => golang.org/x/text v0.3.8 // CVE-2022-32149
+replace golang.org/x/text => golang.org/x/text v0.22.0 // CVE-2022-32149
 
 require (
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
@@ -72,7 +72,7 @@ require (
 	golang.org/x/term v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	golang.org/x/tools v0.16.1 // indirect
+	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d // indirect
