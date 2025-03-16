@@ -93,8 +93,9 @@ var map_FieldValue = map[string]string{
 	"":        "FieldValue is the value of the status field. The value of the status field can only be integer, string or boolean.",
 	"type":    "Type represents the type of the value, it can be integer, string or boolean.",
 	"integer": "Integer is the integer value when type is integer.",
-	"string":  "String is the string value when when type is string.",
+	"string":  "String is the string value when type is string.",
 	"boolean": "Boolean is bool value when type is boolean.",
+	"jsonRaw": "JsonRaw is a json string when type is a list or object",
 }
 
 func (FieldValue) SwaggerDoc() map[string]string {
@@ -134,7 +135,7 @@ var map_ManifestConfigOption = map[string]string{
 	"":                   "ManifestConfigOption represents the configurations of a manifest defined in workload field.",
 	"resourceIdentifier": "ResourceIdentifier represents the group, resource, name and namespace of a resoure. iff this refers to a resource not created by this manifest work, the related rules will not be executed.",
 	"feedbackRules":      "FeedbackRules defines what resource status field should be returned. If it is not set or empty, no feedback rules will be honored.",
-	"updateStrategy":     "UpdateStrategy defines the strategy to update this manifest. UpdateStrategy is Update if it is not set, optional",
+	"updateStrategy":     "UpdateStrategy defines the strategy to update this manifest. UpdateStrategy is Update if it is not set.",
 }
 
 func (ManifestConfigOption) SwaggerDoc() map[string]string {
@@ -286,7 +287,7 @@ func (StatusFeedbackResult) SwaggerDoc() map[string]string {
 
 var map_UpdateStrategy = map[string]string{
 	"":                "UpdateStrategy defines the strategy to update this manifest",
-	"type":            "type defines the strategy to update this manifest, default value is Update. Update type means to update resource by an update call. CreateOnly type means do not update resource based on current manifest. ServerSideApply type means to update resource using server side apply with work-controller as the field manager. If there is conflict, the related Applied condition of manifest will be in the status of False with the reason of ApplyConflict.",
+	"type":            "type defines the strategy to update this manifest, default value is Update. Update type means to update resource by an update call. CreateOnly type means do not update resource based on current manifest. ServerSideApply type means to update resource using server side apply with work-controller as the field manager. If there is conflict, the related Applied condition of manifest will be in the status of False with the reason of ApplyConflict. ReadOnly type means the agent will only check the existence of the resource based on its metadata, statusFeedBackRules can still be used to get feedbackResults.",
 	"serverSideApply": "serverSideApply defines the configuration for server side apply. It is honored only when type of updateStrategy is ServerSideApply",
 }
 
