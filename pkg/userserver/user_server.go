@@ -2,6 +2,7 @@ package userserver
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -24,7 +25,6 @@ import (
 	konnectivity "sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client"
 	"sigs.k8s.io/apiserver-network-proxy/pkg/util"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
 	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
@@ -179,27 +179,7 @@ func (k *userServer) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// get service proxy host for current managed cluster
-	var namespace string
-	addon, err := k.addonLister.ManagedClusterAddOns(tsc.Cluster).Get(constant.AddonName)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			// Use default namespace if addon is not found
-			namespace = k.agentInstallNamespace
-		} else {
-			http.Error(wr, err.Error(), http.StatusBadRequest)
-			return
-		}
-	} else {
-		// Use the namespace from the addon if found
-		if addon.Status.Namespace != "" {
-			namespace = addon.Status.Namespace
-		} else {
-			namespace = k.agentInstallNamespace
-		}
-	}
-
-	targetURL, err := url.Parse(utils.GetServiceProxyURL(tsc.Cluster, namespace, constant.ServiceProxyName))
+	targetURL, err := url.Parse(serviceProxyURL(tsc.Cluster))
 	if err != nil {
 		http.Error(wr, err.Error(), http.StatusBadRequest)
 		return
@@ -279,4 +259,11 @@ func (k *userServer) Run(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// here use the same logic as in the cluster-proxy repo:
+// https://github.com/stolostron/cluster-proxy/blob/304b2ded6c1a651be9ba0f15af4edf1f65ac29df/pkg/proxyagent/agent/agent.go#L297
+func serviceProxyURL(clusterName string) string {
+	serviceProxyHost := fmt.Sprintf("cluster-%x", sha256.Sum256([]byte(clusterName)))[:64-len("cluster-")] + ".open-cluster-management.proxy"
+	return fmt.Sprintf("https://%s:%d", serviceProxyHost, constant.ServiceProxyPort)
 }
