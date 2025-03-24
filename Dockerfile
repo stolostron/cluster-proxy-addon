@@ -5,7 +5,7 @@ WORKDIR /go/src/github.com/stolostron/cluster-proxy-addon
 COPY . .
 
 RUN make build
-RUN make build-anp
+# RUN make build-anp
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
@@ -13,8 +13,8 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 ENV USER_UID=10001
 
 COPY --from=builder /go/src/github.com/stolostron/cluster-proxy-addon/cluster-proxy /
-COPY --from=builder /go/src/github.com/stolostron/cluster-proxy-addon/proxy-agent /
-COPY --from=builder /go/src/github.com/stolostron/cluster-proxy-addon/proxy-server /
+# COPY --from=builder /go/src/github.com/stolostron/cluster-proxy-addon/proxy-agent /
+# COPY --from=builder /go/src/github.com/stolostron/cluster-proxy-addon/proxy-server /
 
 RUN microdnf update && microdnf clean all
 
