@@ -24,9 +24,9 @@ This feature has 7 relevant repos:
     * The repo is a forked version to support the proxy-in-middle cases.
     * Used in: https://github.com/stolostron/apiserver-network-proxy/blob/d562699c78201daef7dec97cd1847e5abffbe2ab/go.mod#L5C43-L5C72
 
-## The recommanded way for **internal** operator/controller/service to leverage the cluster-proxy-addon
+## The recommended way for **internal** operator/controller/service to leverage the cluster-proxy-addon
 
-The cluster-proxy-addon exposed a `Route` for the users in outside world to access the managed clusters. But for the internal operator/controller/service, it's recommanded to use the `Service` to access the managed clusters. The `Service` is also more efficient than the `Route` in the internal network.
+The cluster-proxy-addon exposed a `Route` for the users in outside world to access the managed clusters. But for the internal operator/controller/service, it's recommended to use the `Service` to access the managed clusters. The `Service` is also more efficient than the `Route` in the internal network.
 
 Here is a piece of code to show how to use the cluster-proxy-addon `Service` to access the managed clusters' pod logs, the full example can be found in [multicloud-operators-foundation](https://github.com/stolostron/multicloud-operators-foundation/blob/main/pkg/proxyserver/getter/logProxyGetter.go):
 

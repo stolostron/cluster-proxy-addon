@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -11,21 +10,15 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
-	workclient "open-cluster-management.io/api/client/work/clientset/versioned"
-
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 func init() {
@@ -106,9 +99,13 @@ func runControllerManager() error {
 
 	// New controller manager
 	mgr, err := manager.New(kubeConfig, manager.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
+		Scheme: scheme,
+		Metrics: metricsserver.Options{
+			BindAddress: metricsAddr,
+		},
+		WebhookServer: webhook.NewServer(webhook.Options{
+			Port: 9443,
+		}),
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "cluster-proxy-service-proxy",
@@ -130,48 +127,4 @@ func runControllerManager() error {
 		return err
 	}
 	return nil
-}
-
-// In the previous version, cluster-proxy-addon create a manifestwork
-func deleteClusterProxyServiceProxy(ctx context.Context, kubeconfig *rest.Config) error {
-	klog.Info("delete manifestwork addon-cluster-proxy-service-proxy in managedclusters")
-	clusterClient, err := clusterclient.NewForConfig(kubeconfig)
-	if err != nil {
-		return err
-	}
-
-	workClient, err := workclient.NewForConfig(kubeconfig)
-	if err != nil {
-		return err
-	}
-
-	managedclusters, err := clusterClient.ClusterV1().ManagedClusters().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-
-	klog.Infof("found %d managedclusters", len(managedclusters.Items))
-
-	errs := []error{}
-	for _, mc := range managedclusters.Items {
-		// get manifestwork, if the manifestwork is not found, do nothing
-		_, err := workClient.WorkV1().ManifestWorks(mc.Name).Get(ctx, "addon-cluster-proxy-service-proxy", metav1.GetOptions{})
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				klog.Infof("manifestwork addon-cluster-proxy-service-proxy not found in managedcluster %s", mc.Name)
-				continue
-			}
-			errs = append(errs, fmt.Errorf("failed to get manifestwork addon-cluster-proxy-service-proxy in managedcluster %s: %v", mc.Name, err))
-			continue
-		}
-
-		// delete manifestwork
-		err = workClient.WorkV1().ManifestWorks(mc.Name).Delete(ctx, "addon-cluster-proxy-service-proxy", metav1.DeleteOptions{})
-		if err != nil {
-			errs = append(errs, fmt.Errorf("failed to delete manifestwork addon-cluster-proxy-service-proxy in managedcluster %s: %v", mc.Name, err))
-			continue
-		}
-	}
-
-	return utilerrors.NewAggregate(errs)
 }

@@ -1,12 +1,13 @@
-FROM registry.ci.openshift.org/stolostron/builder:go1.21-linux AS builder
+FROM registry.ci.openshift.org/stolostron/builder:go1.22-linux AS builder
 
 WORKDIR /go/src/github.com/stolostron/cluster-proxy-addon
 
 COPY . .
 
-RUN make build-all
+RUN make build
+RUN make build-anp
 
-FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 
 ENV USER_UID=10001

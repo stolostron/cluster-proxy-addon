@@ -3,7 +3,7 @@ all: build
 
 HELM?=_output/linux-amd64/helm
 
-IMAGE_CLUSTER_PROXY?=quay.io/stolostron/cluster-proxy:backplane-2.5
+IMAGE_CLUSTER_PROXY?=quay.io/stolostron/cluster-proxy:main
 IMAGE_PULL_POLICY=Always
 IMAGE_TAG?=latest
 
@@ -15,14 +15,7 @@ export CGO_ENABLED = 1
 
 export GOPATH ?= $(shell go env GOPATH)
 
-# Include the library makefile
-include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
-	golang.mk \
-	targets/openshift/deps.mk \
-	targets/openshift/images.mk \
-	targets/openshift/bindata.mk \
-	lib/tmp.mk \
-)
+export DOCKER_BUILDER ?= docker
 
 # Image URL to use all building/pushing image targets;
 IMAGE ?= cluster-proxy-addon
@@ -31,8 +24,9 @@ IMAGE_TAG ?= latest
 
 # ANP source code
 ANP_NAME ?= apiserver-network-proxy
-ANP_VERSION ?= 0.1.6.patch
+ANP_VERSION ?= 0.1.6.patch-02
 ANP_SRC_CODE ?= dependencymagnet/${ANP_NAME}/${ANP_VERSION}.tar.gz
+PERMANENT_TMP ?= _output
 
 # Add packages to do unit test
 GO_TEST_PACKAGES :=./pkg/...
@@ -40,18 +34,12 @@ KUBECTL ?= kubectl
 
 CLUSTER_PROXY_ADDON_IMAGE?=${IMAGE_REGISTRY}/${IMAGE}:${IMAGE_TAG}
 
-# This will call a macro called "build-image" which will generate image specific targets based on the parameters:
-# $0 - macro name
-# $1 - target suffix
-# $2 - Dockerfile path
-# $3 - context directory for image build
-# It will generate target "image-$(1)" for building the image and binding it as a prerequisite to target "images".
-$(call build-image,$(IMAGE),$(IMAGE_REGISTRY)/$(IMAGE),./Dockerfile,.)
-
-$(call add-bindata,addon-agent,./pkg/hub/addon/manifests/...,bindata,bindata,./pkg/hub/addon/bindata/bindata.go)
-
 build-all: build build-anp
 .PHONY: build-all
+
+build:
+	go build -o cluster-proxy ./cmd/cluster-proxy/main.go
+.PHONY: build
 
 build-anp:
 	mkdir -p $(PERMANENT_TMP)
@@ -93,8 +81,18 @@ deploy-addon-for-e2e: ensure-helm
 	--set global.imageOverrides.cluster_proxy_addon="$(CLUSTER_PROXY_ADDON_IMAGE)" \
 	--set global.imageOverrides.cluster_proxy="$(IMAGE_CLUSTER_PROXY)" \
 	--set cluster_basedomain="$(shell $(KUBECTL) get ingress.config.openshift.io cluster -o=jsonpath='{.spec.domain}')"
+	$(KUBECTL) apply -f test/e2e/placement/ns.yaml
+	$(KUBECTL) apply -f test/e2e/placement/
 .PHONY: deploy-addon-for-e2e
 
 test-e2e: deploy-ocm deploy-addon-for-e2e build-e2e
 	export CLUSTER_BASE_DOMAIN=$(shell $(KUBECTL) get ingress.config.openshift.io cluster -o=jsonpath='{.spec.domain}') && ./e2e.test -test.v -ginkgo.v
 .PHONY: test-e2e
+
+images:
+	$(DOCKER_BUILDER) build -f Dockerfile . -t $(CLUSTER_PROXY_ADDON_IMAGE)
+.PHONY: images
+
+images-amd64:
+	$(DOCKER_BUILDER) buildx build --platform linux/amd64 --load -f Dockerfile . -t $(CLUSTER_PROXY_ADDON_IMAGE)
+.PHONY: images-amd64

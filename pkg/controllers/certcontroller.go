@@ -11,15 +11,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	corev1listers "k8s.io/client-go/listers/core/v1"
-	"k8s.io/client-go/util/workqueue"
-	certrotation "open-cluster-management.io/addon-framework/pkg/certrotation"
+	certrotation "open-cluster-management.io/sdk-go/pkg/certrotation"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	predicate "sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 var _ reconcile.Reconciler = &reconcileServerCertificates{}
@@ -52,8 +49,12 @@ func registerCertController(certNamespace string,
 	secertLister corev1listers.SecretLister,
 	secertGetter corev1client.SecretsGetter, mgr manager.Manager) error {
 
-	c, err := controller.New("cert-controller", mgr, controller.Options{
-		Reconciler: &reconcileServerCertificates{
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&corev1.Secret{}).
+		WithEventFilter(predicate.NewPredicateFuncs(func(object client.Object) bool {
+			return object.GetName() == signerSecretName && object.GetNamespace() == signerSecretNamespace
+		})).
+		Complete(&reconcileServerCertificates{
 			client:                mgr.GetClient(),
 			signerSecretName:      signerSecretName,
 			signerSecretNamespace: signerSecretNamespace,
@@ -61,24 +62,11 @@ func registerCertController(certNamespace string,
 				Namespace: certNamespace,
 				Name:      constant.ServerCertSecretName,
 				Validity:  time.Hour * 24 * 180, // align with the signer ca by cluster-proxy
-				HostNames: []string{"*", "localhost", "127.0.0.1"},
+				HostNames: []string{"*", "localhost", "127.0.0.1", "*.open-cluster-management.proxy"},
 				Lister:    secertLister,
 				Client:    secertGetter,
 			},
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	if err := c.Watch(&source.Kind{Type: &corev1.Secret{}}, &secretHandler{
-		signerSecretName:      signerSecretName,
-		singerSecretNamespace: signerSecretNamespace,
-	}); err != nil {
-		return err
-	}
-
-	return nil
+		})
 }
 
 // Reconile reconcile the server certificates.
@@ -103,55 +91,4 @@ func (r *reconcileServerCertificates) Reconcile(context.Context, reconcile.Reque
 		return reconcile.Result{}, err
 	}
 	return reconcile.Result{}, nil
-}
-
-type secretHandler struct {
-	signerSecretName      string
-	singerSecretNamespace string
-}
-
-var _ handler.EventHandler = &secretHandler{}
-
-func (h *secretHandler) Create(evt event.CreateEvent, q workqueue.RateLimitingInterface) {
-	if !h.isSignerSecret(evt.Object) {
-		return
-	}
-	q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
-		Name:      evt.Object.GetName(),
-		Namespace: evt.Object.GetNamespace(),
-	}})
-}
-
-func (h *secretHandler) Update(evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
-	if !h.isSignerSecret(evt.ObjectNew) {
-		return
-	}
-	q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
-		Name:      evt.ObjectNew.GetName(),
-		Namespace: evt.ObjectNew.GetNamespace(),
-	}})
-}
-
-func (h *secretHandler) Delete(evt event.DeleteEvent, q workqueue.RateLimitingInterface) {
-	if !h.isSignerSecret(evt.Object) {
-		return
-	}
-	q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
-		Name:      evt.Object.GetName(),
-		Namespace: evt.Object.GetNamespace(),
-	}})
-}
-
-func (h *secretHandler) Generic(evt event.GenericEvent, q workqueue.RateLimitingInterface) {
-	if !h.isSignerSecret(evt.Object) {
-		return
-	}
-	q.Add(reconcile.Request{NamespacedName: types.NamespacedName{
-		Name:      evt.Object.GetName(),
-		Namespace: evt.Object.GetNamespace(),
-	}})
-}
-
-func (h *secretHandler) isSignerSecret(o client.Object) bool {
-	return o.GetName() == h.signerSecretName && o.GetNamespace() == h.singerSecretNamespace
 }
