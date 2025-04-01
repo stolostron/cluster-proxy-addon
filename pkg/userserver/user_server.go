@@ -2,14 +2,15 @@ package userserver
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strconv"
 	"time"
 
@@ -23,6 +24,11 @@ import (
 	addonutils "open-cluster-management.io/addon-framework/pkg/utils"
 	konnectivity "sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client"
 	"sigs.k8s.io/apiserver-network-proxy/pkg/util"
+
+	addonclient "open-cluster-management.io/api/client/addon/clientset/versioned"
+	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
+	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func NewUserServerCommand() *cobra.Command {
@@ -58,6 +64,8 @@ type userServer struct {
 
 	serviceProxyCACertPath string
 	agentInstallNamespace  string
+
+	addonLister addonlisterv1alpha1.ManagedClusterAddOnLister
 }
 
 func (k *userServer) AddFlags(cmd *cobra.Command) {
@@ -110,7 +118,7 @@ func (k *userServer) init(ctx context.Context) error {
 	}
 
 	// prepare ca for sevice proxy server
-	serviceProxyCaCert, err := ioutil.ReadFile(k.serviceProxyCACertPath)
+	serviceProxyCaCert, err := os.ReadFile(k.serviceProxyCACertPath)
 	if err != nil {
 		return err
 	}
@@ -135,6 +143,15 @@ func (k *userServer) init(ctx context.Context) error {
 		}
 		return tunnel, nil
 	}
+
+	addonClient, err := addonclient.NewForConfig(ctrl.GetConfigOrDie())
+	if err != nil {
+		return err
+	}
+	addonInformerFactory := addoninformers.NewSharedInformerFactory(addonClient, 30*time.Minute)
+	k.addonLister = addonInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Lister()
+	addonInformerFactory.Start(ctx.Done())
+
 	return nil
 }
 
@@ -162,9 +179,7 @@ func (k *userServer) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// get service proxy host for current managed cluster
-
-	targetURL, err := url.Parse(utils.GetServiceProxyURL(tsc.Cluster, k.agentInstallNamespace, constant.ServiceProxyName))
+	targetURL, err := url.Parse(serviceProxyURL(tsc.Cluster))
 	if err != nil {
 		http.Error(wr, err.Error(), http.StatusBadRequest)
 		return
@@ -244,4 +259,11 @@ func (k *userServer) Run(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// here use the same logic as in the cluster-proxy repo:
+// https://github.com/stolostron/cluster-proxy/blob/304b2ded6c1a651be9ba0f15af4edf1f65ac29df/pkg/proxyagent/agent/agent.go#L297
+func serviceProxyURL(clusterName string) string {
+	serviceProxyHost := fmt.Sprintf("cluster-%x", sha256.Sum256([]byte(clusterName)))[:64-len("cluster-")] + ".open-cluster-management.proxy"
+	return fmt.Sprintf("https://%s:%d", serviceProxyHost, constant.ServiceProxyPort)
 }
