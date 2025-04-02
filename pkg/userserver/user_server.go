@@ -2,6 +2,7 @@ package userserver
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -163,8 +164,7 @@ func (k *userServer) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	}
 
 	// get service proxy host for current managed cluster
-
-	targetURL, err := url.Parse(utils.GetServiceProxyURL(tsc.Cluster, k.agentInstallNamespace, constant.ServiceProxyName))
+	targetURL, err := url.Parse(serviceProxyURL(tsc.Cluster))
 	if err != nil {
 		http.Error(wr, err.Error(), http.StatusBadRequest)
 		return
@@ -244,4 +244,11 @@ func (k *userServer) Run(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// here use the same logic as in the cluster-proxy repo:
+// https://github.com/stolostron/cluster-proxy/blob/304b2ded6c1a651be9ba0f15af4edf1f65ac29df/pkg/proxyagent/agent/agent.go#L297
+func serviceProxyURL(clusterName string) string {
+	serviceProxyHost := fmt.Sprintf("cluster-%x", sha256.Sum256([]byte(clusterName)))[:64-len("cluster-")] + ".open-cluster-management.proxy"
+	return fmt.Sprintf("https://%s:%d", serviceProxyHost, constant.ServiceProxyPort)
 }

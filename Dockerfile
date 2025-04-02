@@ -1,4 +1,4 @@
-FROM registry.ci.openshift.org/stolostron/builder:go1.21-linux AS builder
+FROM registry.ci.openshift.org/stolostron/builder:go1.23-linux AS builder
 
 WORKDIR /go/src/github.com/stolostron/cluster-proxy-addon
 
@@ -6,7 +6,7 @@ COPY . .
 
 RUN make build-all
 
-FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 
 ENV USER_UID=10001
@@ -15,6 +15,6 @@ COPY --from=builder /go/src/github.com/stolostron/cluster-proxy-addon/cluster-pr
 COPY --from=builder /go/src/github.com/stolostron/cluster-proxy-addon/proxy-agent /
 COPY --from=builder /go/src/github.com/stolostron/cluster-proxy-addon/proxy-server /
 
-RUN microdnf update && microdnf clean all
+RUN microdnf update -y && microdnf clean all
 
 USER ${USER_UID}
