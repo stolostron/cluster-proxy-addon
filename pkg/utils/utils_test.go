@@ -155,29 +155,6 @@ func TestParseServiceRequestURL(t *testing.T) {
 	}
 }
 
-func TestGenerateServiceProxyURL(t *testing.T) {
-	testcases := []struct {
-		cluster   string
-		namespace string
-		service   string
-		expected  string
-	}{
-		{
-			cluster:   "cluster1",
-			namespace: "default",
-			service:   "hello-world",
-			expected:  "https://cluster-proxy-0a375e32e4fd883639903ad3aeb941752526a9c551b67aae4:7443",
-		},
-	}
-
-	for _, tc := range testcases {
-		actual := GetServiceProxyURL(tc.cluster, tc.namespace, tc.service)
-		if actual != tc.expected {
-			t.Errorf("expected: %v, got: %v", tc.expected, actual)
-		}
-	}
-}
-
 func TestUpdateRequest(t *testing.T) {
 	tsc := TargetServiceConfig{
 		Cluster:   "cluster1",
@@ -189,8 +166,9 @@ func TestUpdateRequest(t *testing.T) {
 	}
 
 	testcases := []struct {
-		req    *http.Request
-		expect *http.Request
+		req      *http.Request
+		userType string
+		expect   *http.Request
 	}{
 		{
 			req: &http.Request{

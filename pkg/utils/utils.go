@@ -8,10 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stolostron/cluster-proxy-addon/pkg/constant"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/klog/v2"
-	clusterproxyutil "open-cluster-management.io/cluster-proxy/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 )
 
@@ -32,10 +30,6 @@ type TargetServiceConfig struct {
 	Namespace string
 	Port      string
 	Path      string
-}
-
-func GetServiceProxyURL(cluster, namespace, service string) string {
-	return fmt.Sprintf("https://%s:%d", clusterproxyutil.GenerateServiceURL(cluster, namespace, service), constant.ServiceProxyPort)
 }
 
 func UpdateRequest(t TargetServiceConfig, req *http.Request) *http.Request {
