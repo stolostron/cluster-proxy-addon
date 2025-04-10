@@ -31,7 +31,7 @@ IMAGE_TAG ?= latest
 
 # ANP source code
 ANP_NAME ?= apiserver-network-proxy
-ANP_VERSION ?= 0.1.6.patch
+ANP_VERSION ?= 0.1.6.patch-02-replace
 ANP_SRC_CODE ?= dependencymagnet/${ANP_NAME}/${ANP_VERSION}.tar.gz
 
 # Add packages to do unit test
@@ -98,3 +98,11 @@ deploy-addon-for-e2e: ensure-helm
 test-e2e: deploy-ocm deploy-addon-for-e2e build-e2e
 	export CLUSTER_BASE_DOMAIN=$(shell $(KUBECTL) get ingress.config.openshift.io cluster -o=jsonpath='{.spec.domain}') && ./e2e.test -test.v -ginkgo.v
 .PHONY: test-e2e
+
+images:
+	docker build -f Dockerfile . -t $(CLUSTER_PROXY_ADDON_IMAGE)
+.PHONY: images
+
+images-amd64:
+	docker buildx build --platform linux/amd64 --load -f Dockerfile . -t $(CLUSTER_PROXY_ADDON_IMAGE)
+.PHONY: images-amd64
