@@ -9,7 +9,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.13.0
 	github.com/onsi/gomega v1.29.0
 	github.com/openshift/build-machinery-go v0.0.0-20250211133638-a00a772ae1a2
-	github.com/openshift/library-go v0.0.0-20240116081341-964bcb3f545c
+	github.com/openshift/library-go ac3ba9eb16a2
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.6
 	google.golang.org/grpc v1.58.3
