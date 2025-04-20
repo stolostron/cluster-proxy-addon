@@ -20,7 +20,7 @@ require (
 	github.com/openshift/library-go v0.0.0-20220525173854-9b950a41acdc
 	github.com/spf13/cobra v1.6.0
 	github.com/spf13/pflag v1.0.6
-	github.com/stolostron/cluster-lifecycle-api v0.0.0-20221017035138-e14880af0f1a
+	github.com/stolostron/cluster-lifecycle-api 2eab303aa274
 	google.golang.org/grpc v1.49.0
 	k8s.io/api v0.26.7
 	k8s.io/apimachinery v0.26.7
