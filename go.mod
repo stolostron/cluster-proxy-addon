@@ -5,7 +5,7 @@ go 1.23.6
 require (
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.32.0
-	github.com/openshift/library-go v0.0.0-20240621150525-4bb4238aef81
+	github.com/openshift/library-go ac3ba9eb16a2
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	google.golang.org/grpc v1.62.1
