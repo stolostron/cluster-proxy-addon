@@ -8,7 +8,7 @@ require (
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/onsi/ginkgo/v2 v2.6.0
 	github.com/onsi/gomega v1.24.1
-	github.com/openshift/build-machinery-go v0.0.0-20250211133638-a00a772ae1a2
+	github.com/openshift/build-machinery-go 3ce8e800ceda
 	github.com/openshift/library-go v0.0.0-20220525173854-9b950a41acdc
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.6
