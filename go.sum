@@ -220,8 +220,6 @@ open-cluster-management.io/addon-framework v0.11.0 h1:ZJxphgHQ36VUJF0RIag+nzcEn5
 open-cluster-management.io/addon-framework v0.11.0/go.mod h1:ruMU8i/dciz3qCv2CQ46Cu1b7rkK7TpvB+W4bRwHf+I=
 open-cluster-management.io/api v0.15.0 h1:lRee1KOlGHZb2scTA7ff9E9Fxt2hJc7jpkHnaCbvkOU=
 open-cluster-management.io/api v0.15.0/go.mod h1:9erZEWEn4bEqh0nIX2wA7f/s3KCuFycQdBrPrRzi0QM=
-open-cluster-management.io/cluster-proxy v0.3.0 h1:aXuTqxOdmZqyOfXYwRuPGFLROBEHcFPtrWRG0uQBue8=
-open-cluster-management.io/cluster-proxy v0.3.0/go.mod h1:iMvV2HBT5gyJeP1XOvFz1xz3V+DNb/fbR8QzySpWsz8=
 open-cluster-management.io/sdk-go v0.15.0 h1:2IAJnPfUoY6rPC5w7LhqAnvIlgekPoVW03LdZO1unIM=
 open-cluster-management.io/sdk-go v0.15.0/go.mod h1:fi5WBsbC5K3txKb8eRLuP0Sim/Oqz/PHX18skAEyjiA=
 sigs.k8s.io/apiserver-network-proxy v0.0.27 h1:SE5JOrvIMty/rRW64k+4wfoH6V04V5If3L1QxudFXQ8=
