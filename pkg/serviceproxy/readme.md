@@ -254,7 +254,13 @@ Then, list pods of cluster1 via cluster-proxy-addon endpoint:
 
 ```bash
 oc config use-context admin
+# For Kubernetes 1.24+
 CLUSTER_PROXY_URL=$(oc get route cluster-proxy-addon-user -n multicluster-engine -o jsonpath='{.spec.host}')
+
+# For Kubernetes 1.23 and lower
+# CLUSTER_PROXY_URL=$(oc get route cluster-proxy-addon-user -n open-cluster-management-addon -o jsonpath='{.spec.host}')
+
+# Test access to resources
 curl -k -H "Authorization: Bearer $TOKEN" https://$CLUSTER_PROXY_URL/cluster1/api/v1/namespaces/open-cluster-management-agent-addon/pods
 curl -k -H "Authorization: Bearer $TOKEN" https://$CLUSTER_PROXY_URL/cluster1/apis/apps/v1/namespaces/open-cluster-management-agent-addon/deployments
 ```
