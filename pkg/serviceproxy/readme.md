@@ -1,6 +1,6 @@
-### 1 The Pre-req of using service-proxy impersonation feature
+### 1 Notes
 
-Both hub and managed cluster need to be configured with the same external IDP.
+- Impersonation can simulate users that do not actually exist in the cluster, as long as the corresponding RBAC Role or RoleBinding is configured. Therefore, it is not required for both the hub and managed cluster to be configured with the same external IDP in order to use the impersonation feature.
 
 ### 2 The corner case of serviceaccount impersonation
 
