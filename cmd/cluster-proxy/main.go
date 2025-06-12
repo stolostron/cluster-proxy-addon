@@ -59,5 +59,7 @@ func newClusterProxyCommand() *cobra.Command {
 	cmd.AddCommand(serviceproxy.NewServiceProxyCommand())
 	cmd.AddCommand(controllers.NewControllersCommand())
 
+	fmt.Println("cluster-proxy")
+
 	return cmd
 }
