@@ -42,7 +42,7 @@ spec:
       - name: revision
         value: main
       - name: pathInRepo
-        value: pipelines/stolostron-build.yaml
+        value: pipelines/common.yaml
   taskRunTemplate:
     serviceAccountName: build-pipeline-cluster-proxy-addon-mce-29
   workspaces:
