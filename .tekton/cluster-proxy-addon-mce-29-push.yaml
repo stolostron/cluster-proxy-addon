@@ -7,9 +7,8 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "backplane-2.9"
-  creationTimestamp: null
+    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch == "backplane-2.9"
+  creationTimestamp:
   labels:
     appstudio.openshift.io/application: release-mce-29
     appstudio.openshift.io/component: cluster-proxy-addon-mce-29
@@ -37,12 +36,12 @@ spec:
   pipelineRef:
     resolver: git
     params:
-      - name: url
-        value: "https://github.com/stolostron/konflux-build-catalog.git"
-      - name: revision
-        value: main
-      - name: pathInRepo
-        value: pipelines/common.yaml
+    - name: url
+      value: "https://github.com/stolostron/konflux-build-catalog.git"
+    - name: revision
+      value: main
+    - name: pathInRepo
+      value: pipelines/common.yaml
   taskRunTemplate:
     serviceAccountName: build-pipeline-cluster-proxy-addon-mce-29
   workspaces:
