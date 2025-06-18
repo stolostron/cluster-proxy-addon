@@ -180,6 +180,7 @@ func (s *serviceProxy) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 
 	if url.Host == "kubernetes.default.svc" {
 		if err := s.processAuthentication(req); err != nil {
+			klog.ErrorS(err, "authentication failed")
 			http.Error(wr, err.Error(), http.StatusUnauthorized)
 			return
 		}
@@ -265,6 +266,7 @@ func (s *serviceProxy) processAuthentication(req *http.Request) error {
 	// determine if the token is a managed cluster user
 	managedClusterAuthenticated, _, err := s.managedClusterUserAuthenticatedAndInfo(token)
 	if err != nil {
+		klog.ErrorS(err, "managed cluster authentication failed")
 		return fmt.Errorf("managed cluster authentication failed: %v", err)
 	}
 
@@ -272,13 +274,16 @@ func (s *serviceProxy) processAuthentication(req *http.Request) error {
 		// determine if the token is a hub user
 		hubAuthenticated, hubUserInfo, err := s.hubUserAuthenticatedAndInfo(token)
 		if err != nil {
+			klog.ErrorS(err, "hub cluster authentication failed")
 			return fmt.Errorf("authentication failed: managed cluster auth: not authenticated, hub cluster auth error: %v", err)
 		}
 		if !hubAuthenticated {
+			klog.ErrorS(err, "authentication failed: token is neither valid for managed cluster nor hub cluster")
 			return fmt.Errorf("authentication failed: token is neither valid for managed cluster nor hub cluster")
 		}
 
 		if err := s.processHubUser(req, hubUserInfo); err != nil {
+			klog.ErrorS(err, "failed to process hub user")
 			return fmt.Errorf("failed to process hub user: %v", err)
 		}
 	}
