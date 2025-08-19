@@ -35,7 +35,7 @@ spec:
       - name: revision
         value: main
       - name: pathInRepo
-        value: pipelines/common.yaml
+        value: pipelines/common_mce_2.6.yaml
 
   taskRunTemplate:
     serviceAccountName: build-pipeline-cluster-proxy-addon-mce-26
