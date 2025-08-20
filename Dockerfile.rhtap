@@ -4,8 +4,7 @@ WORKDIR /go/src/github.com/stolostron/cluster-proxy-addon
 
 COPY . .
 
-RUN make build
-RUN make build-anp
+RUN make build-all
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
@@ -17,7 +16,6 @@ LABEL \
     summary="A hub cluster proxy addon" \
     io.k8s.display-name="Red Hat Advanced Cluster Management Cluster Proxy Addon" \
     io.openshift.tags="mce acm cluster-proxy-addon"
-
 
 ENV USER_UID=10001
 
