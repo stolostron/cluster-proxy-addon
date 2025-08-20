@@ -33,6 +33,12 @@ spec:
     value: Dockerfile.rhtap
   - name: path-context
     value: .
+  - name: send-slack-notification
+    value: "true"
+  - name: konflux-application-name
+    value: "release-mce-29"
+  - name: slack-member-id
+    value: "U01TX25RJ3B"
   pipelineRef:
     resolver: git
     params:
