@@ -9,13 +9,19 @@ RUN make build-anp
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
+LABEL \
+    name="cluster-proxy-addon" \
+    com.redhat.component="cluster-proxy-addon" \
+    description="Cluster Proxy Addon allows users to access the managed clusters from a hub cluster" \
+    io.k8s.description="Cluster Proxy Addon allows users to access the managed clusters from a hub cluster" \
+    summary="A hub cluster proxy addon" \
+    io.k8s.display-name="Red Hat Advanced Cluster Management Cluster Proxy Addon" \
+    io.openshift.tags="mce acm cluster-proxy-addon"
 
 ENV USER_UID=10001
 
 COPY --from=builder /go/src/github.com/stolostron/cluster-proxy-addon/cluster-proxy /
 COPY --from=builder /go/src/github.com/stolostron/cluster-proxy-addon/proxy-agent /
 COPY --from=builder /go/src/github.com/stolostron/cluster-proxy-addon/proxy-server /
-
-RUN microdnf update && microdnf clean all
 
 USER ${USER_UID}
