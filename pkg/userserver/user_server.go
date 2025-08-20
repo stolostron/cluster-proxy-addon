@@ -128,7 +128,7 @@ func (k *userServer) init(ctx context.Context) error {
 			net.JoinHostPort(k.proxyServerHost, strconv.Itoa(k.proxyServerPort)),
 			grpc.WithTransportCredentials(grpccredentials.NewTLS(proxyTLSCfg)),
 			grpc.WithKeepaliveParams(keepalive.ClientParameters{
-				Time: time.Second * 5,
+				Time: time.Minute * 10,
 			}),
 		)
 		if err != nil {
