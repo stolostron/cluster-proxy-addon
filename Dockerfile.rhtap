@@ -10,6 +10,7 @@ RUN make build-anp
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 LABEL \
+      url="https://github.com/stolostron/cluster-proxy-addon" \
     name="cluster-proxy-addon" \
     com.redhat.component="cluster-proxy-addon" \
     description="Cluster Proxy Addon allows users to access the managed clusters from a hub cluster" \
