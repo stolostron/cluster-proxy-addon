@@ -24,7 +24,7 @@ IMAGE_TAG ?= latest
 
 # ANP source code
 ANP_NAME ?= apiserver-network-proxy
-ANP_VERSION ?= 0.1.6.patch-02
+ANP_VERSION ?= 0.1.6.patch-03
 ANP_SRC_CODE ?= dependencymagnet/${ANP_NAME}/${ANP_VERSION}.tar.gz
 PERMANENT_TMP ?= _output
 
