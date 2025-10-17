@@ -23,6 +23,9 @@ import (
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
+	// E2E test verification
+	fmt.Println("cluster-proxy starting...")
+
 	klog.InitFlags(nil)
 	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
