@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -110,25 +111,123 @@ func checkAddonStatus() {
 		for _, deployment := range deployments {
 			d, err := kubeClient.AppsV1().Deployments(hubInstallNamespace).Get(context.Background(), deployment, metav1.GetOptions{})
 			if err != nil {
+				fmt.Printf("\n[ERROR] Failed to get deployment %s: %v\n", deployment, err)
 				return err
 			}
+
+			// Print detailed deployment status
+			fmt.Printf("\n========== Deployment: %s ==========\n", deployment)
+			fmt.Printf("Desired Replicas: %d\n", *d.Spec.Replicas)
+			fmt.Printf("Current Replicas: %d\n", d.Status.Replicas)
+			fmt.Printf("Updated Replicas: %d\n", d.Status.UpdatedReplicas)
+			fmt.Printf("Ready Replicas: %d\n", d.Status.ReadyReplicas)
+			fmt.Printf("Available Replicas: %d\n", d.Status.AvailableReplicas)
+			fmt.Printf("Unavailable Replicas: %d\n", d.Status.UnavailableReplicas)
+
+			// Print deployment conditions
+			if len(d.Status.Conditions) > 0 {
+				fmt.Printf("\nDeployment Conditions:\n")
+				for _, cond := range d.Status.Conditions {
+					fmt.Printf("  - Type: %s, Status: %s, Reason: %s, Message: %s\n",
+						cond.Type, cond.Status, cond.Reason, cond.Message)
+				}
+			}
+
+			// Print full deployment status as JSON for complete details
+			statusJSON, _ := json.MarshalIndent(d.Status, "", "  ")
+			fmt.Printf("\nFull Deployment Status JSON:\n%s\n", string(statusJSON))
+
 			if d.Status.AvailableReplicas < 1 {
+				// Get pods for this deployment
+				fmt.Printf("\n========== Pods for deployment %s ==========\n", deployment)
+				labelSelector := fmt.Sprintf("app=%s", deployment)
+				pods, err := kubeClient.CoreV1().Pods(hubInstallNamespace).List(context.Background(), metav1.ListOptions{
+					LabelSelector: labelSelector,
+				})
+				if err != nil {
+					fmt.Printf("[ERROR] Failed to list pods with selector %s: %v\n", labelSelector, err)
+				} else {
+					fmt.Printf("Found %d pods with label selector: %s\n", len(pods.Items), labelSelector)
+					for i, pod := range pods.Items {
+						fmt.Printf("\n--- Pod %d: %s ---\n", i+1, pod.Name)
+						fmt.Printf("Phase: %s\n", pod.Status.Phase)
+						fmt.Printf("Node: %s\n", pod.Spec.NodeName)
+
+						// Print container statuses
+						fmt.Printf("\nContainer Statuses:\n")
+						for _, containerStatus := range pod.Status.ContainerStatuses {
+							fmt.Printf("  Container: %s\n", containerStatus.Name)
+							fmt.Printf("    Image: %s\n", containerStatus.Image)
+							fmt.Printf("    Ready: %v\n", containerStatus.Ready)
+							fmt.Printf("    RestartCount: %d\n", containerStatus.RestartCount)
+
+							if containerStatus.State.Waiting != nil {
+								fmt.Printf("    State: Waiting - Reason: %s, Message: %s\n",
+									containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message)
+							} else if containerStatus.State.Running != nil {
+								fmt.Printf("    State: Running (started at %v)\n", containerStatus.State.Running.StartedAt)
+							} else if containerStatus.State.Terminated != nil {
+								fmt.Printf("    State: Terminated - Reason: %s, ExitCode: %d, Message: %s\n",
+									containerStatus.State.Terminated.Reason, containerStatus.State.Terminated.ExitCode,
+									containerStatus.State.Terminated.Message)
+							}
+
+							if containerStatus.LastTerminationState.Terminated != nil {
+								fmt.Printf("    Last Termination: Reason: %s, ExitCode: %d, Message: %s\n",
+									containerStatus.LastTerminationState.Terminated.Reason,
+									containerStatus.LastTerminationState.Terminated.ExitCode,
+									containerStatus.LastTerminationState.Terminated.Message)
+							}
+						}
+
+						// Print pod conditions
+						if len(pod.Status.Conditions) > 0 {
+							fmt.Printf("\nPod Conditions:\n")
+							for _, cond := range pod.Status.Conditions {
+								fmt.Printf("  - Type: %s, Status: %s, Reason: %s, Message: %s\n",
+									cond.Type, cond.Status, cond.Reason, cond.Message)
+							}
+						}
+
+						// Print pod events
+						events, err := kubeClient.CoreV1().Events(hubInstallNamespace).List(context.Background(), metav1.ListOptions{
+							FieldSelector: fmt.Sprintf("involvedObject.name=%s", pod.Name),
+						})
+						if err == nil && len(events.Items) > 0 {
+							fmt.Printf("\nRecent Events:\n")
+							for _, event := range events.Items {
+								fmt.Printf("  - %s: %s (Reason: %s, Count: %d)\n",
+									event.Type, event.Message, event.Reason, event.Count)
+							}
+						}
+					}
+				}
+
 				return fmt.Errorf("available replicas for %s should >= 1, but get %d", deployment, d.Status.AvailableReplicas)
 			}
+			fmt.Printf("========================================\n\n")
 		}
 
 		// service on hub exist
 		_, err = kubeClient.CoreV1().Services(hubInstallNamespace).Get(context.Background(), "cluster-proxy-addon-user", metav1.GetOptions{})
 		if err != nil {
+			fmt.Printf("\n[ERROR] Failed to get service cluster-proxy-addon-user: %v\n", err)
 			return err
 		}
 
 		// deployment on managedcluster is running
 		anpAgent, err := kubeClient.AppsV1().Deployments(managedClusterInstallNamespace).Get(context.Background(), "cluster-proxy-proxy-agent", metav1.GetOptions{})
 		if err != nil {
+			fmt.Printf("\n[ERROR] Failed to get deployment cluster-proxy-proxy-agent: %v\n", err)
 			return err
 		}
+
+		fmt.Printf("\n========== Deployment: cluster-proxy-proxy-agent (managed cluster) ==========\n")
+		fmt.Printf("Available Replicas: %d\n", anpAgent.Status.AvailableReplicas)
+
 		if anpAgent.Status.AvailableReplicas < 1 {
+			statusJSON, _ := json.MarshalIndent(anpAgent.Status, "", "  ")
+			fmt.Printf("Full Status:\n%s\n", string(statusJSON))
 			return fmt.Errorf("available replicas for %s should be more than 1, but get %d", "anp-agent", anpAgent.Status.AvailableReplicas)
 		}
 
