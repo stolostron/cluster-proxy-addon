@@ -10,7 +10,8 @@ RUN make build-anp
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 LABEL \
-    name="cluster-proxy-addon" \
+    name="multicluster-engine/cluster-proxy-addon-rhel9" \
+    cpe="cpe:/a:redhat:multicluster_engine:2.9::el9" \
     com.redhat.component="cluster-proxy-addon" \
     description="Cluster Proxy Addon allows users to access the managed clusters from a hub cluster" \
     io.k8s.description="Cluster Proxy Addon allows users to access the managed clusters from a hub cluster" \
