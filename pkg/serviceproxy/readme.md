@@ -1,3 +1,7 @@
+## Requirements
+
+> **Note:** MCE (Multicluster Engine) version must be >= 2.9 to use the service-proxy feature.
+
 ### 1 The Pre-req of using service-proxy impersonation feature
 
 Both hub and managed cluster need to be configured with the same external IDP.
