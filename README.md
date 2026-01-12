@@ -1,5 +1,11 @@
 # Cluster Proxy Addon
 
+> **⚠️ Deprecation Notice**
+>
+> Starting from **MCE 2.11**, this repository has been deprecated. All functionality has been integrated into the [cluster-proxy](https://github.com/stolostron/cluster-proxy) repository.
+>
+> This repository only serves **MCE 2.10 and earlier versions**. For MCE 2.11 and later, please refer to [cluster-proxy](https://github.com/stolostron/cluster-proxy).
+
 `cluster-proxy-addon` uses a reverse proxy server (ANP) to send requests from the hub to managed clusters.
 It also contains end-to-end tests for the overall cluster-proxy-addon functionality.
 
