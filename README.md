@@ -1,5 +1,4 @@
-> [!WARNING]
-> This repository is deprecated starting from MCE 2.11. All functionality has been integrated into the [cluster-proxy](https://github.com/stolostron/cluster-proxy) repository. This repo now only serves MCE 2.10 and earlier versions.
+# WARNING: This repository is deprecated starting from MCE 2.11. All functionality has been integrated into the [cluster-proxy](https://github.com/stolostron/cluster-proxy) repository. This repo now only serves MCE 2.10 and earlier versions.
 
 # Cluster Proxy Addon
 
