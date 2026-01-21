@@ -9,13 +9,14 @@ RUN make build-all
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 LABEL \
-    name="cluster-proxy-addon" \
+    name="multicluster-engine/cluster-proxy-addon-rhel9" \
     com.redhat.component="cluster-proxy-addon" \
     description="Cluster Proxy Addon allows users to access the managed clusters from a hub cluster" \
     io.k8s.description="Cluster Proxy Addon allows users to access the managed clusters from a hub cluster" \
     summary="A hub cluster proxy addon" \
     io.k8s.display-name="Red Hat Advanced Cluster Management Cluster Proxy Addon" \
-    io.openshift.tags="mce acm cluster-proxy-addon"
+    io.openshift.tags="mce acm cluster-proxy-addon" \
+    cpe="cpe:/a:redhat:multicluster_engine:2.6::el9"
 
 ENV USER_UID=10001
 
