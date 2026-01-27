@@ -113,51 +113,53 @@ func checkAddonStatus() {
 				return err
 			}
 			if d.Status.AvailableReplicas < 1 {
-				// Log detailed deployment status for debugging
-				fmt.Printf("\n========== Deployment %s/%s Debug Info ==========\n", hubInstallNamespace, deployment)
-				fmt.Printf("Replicas: Desired=%d, Ready=%d, Available=%d, Updated=%d, Unavailable=%d\n",
-					*d.Spec.Replicas, d.Status.ReadyReplicas, d.Status.AvailableReplicas, d.Status.UpdatedReplicas, d.Status.UnavailableReplicas)
-				fmt.Printf("Conditions:\n")
+				// Build detailed error message for debugging
+				var errMsg strings.Builder
+				errMsg.WriteString(fmt.Sprintf("available replicas for %s should >= 1, but get %d\n", deployment, d.Status.AvailableReplicas))
+				errMsg.WriteString(fmt.Sprintf("\n========== Deployment %s/%s Debug Info ==========\n", hubInstallNamespace, deployment))
+				errMsg.WriteString(fmt.Sprintf("Replicas: Desired=%d, Ready=%d, Available=%d, Updated=%d, Unavailable=%d\n",
+					*d.Spec.Replicas, d.Status.ReadyReplicas, d.Status.AvailableReplicas, d.Status.UpdatedReplicas, d.Status.UnavailableReplicas))
+				errMsg.WriteString("Conditions:\n")
 				for _, cond := range d.Status.Conditions {
-					fmt.Printf("  - Type=%s, Status=%s, Reason=%s, Message=%s\n", cond.Type, cond.Status, cond.Reason, cond.Message)
+					errMsg.WriteString(fmt.Sprintf("  - Type=%s, Status=%s, Reason=%s, Message=%s\n", cond.Type, cond.Status, cond.Reason, cond.Message))
 				}
 
 				// Get pods for this deployment
 				labelSelector := metav1.FormatLabelSelector(d.Spec.Selector)
 				pods, podErr := kubeClient.CoreV1().Pods(hubInstallNamespace).List(context.Background(), metav1.ListOptions{LabelSelector: labelSelector})
 				if podErr != nil {
-					fmt.Printf("Failed to list pods: %v\n", podErr)
+					errMsg.WriteString(fmt.Sprintf("Failed to list pods: %v\n", podErr))
 				} else {
-					fmt.Printf("Pods (total=%d):\n", len(pods.Items))
+					errMsg.WriteString(fmt.Sprintf("Pods (total=%d):\n", len(pods.Items)))
 					for _, pod := range pods.Items {
-						fmt.Printf("  - Pod: %s, Phase=%s\n", pod.Name, pod.Status.Phase)
+						errMsg.WriteString(fmt.Sprintf("  - Pod: %s, Phase=%s\n", pod.Name, pod.Status.Phase))
 						for _, cs := range pod.Status.ContainerStatuses {
-							fmt.Printf("    Container: %s, Ready=%v, RestartCount=%d\n", cs.Name, cs.Ready, cs.RestartCount)
+							errMsg.WriteString(fmt.Sprintf("    Container: %s, Ready=%v, RestartCount=%d\n", cs.Name, cs.Ready, cs.RestartCount))
 							if cs.State.Waiting != nil {
-								fmt.Printf("      Waiting: Reason=%s, Message=%s\n", cs.State.Waiting.Reason, cs.State.Waiting.Message)
+								errMsg.WriteString(fmt.Sprintf("      Waiting: Reason=%s, Message=%s\n", cs.State.Waiting.Reason, cs.State.Waiting.Message))
 							}
 							if cs.State.Terminated != nil {
-								fmt.Printf("      Terminated: Reason=%s, ExitCode=%d, Message=%s\n", cs.State.Terminated.Reason, cs.State.Terminated.ExitCode, cs.State.Terminated.Message)
+								errMsg.WriteString(fmt.Sprintf("      Terminated: Reason=%s, ExitCode=%d, Message=%s\n", cs.State.Terminated.Reason, cs.State.Terminated.ExitCode, cs.State.Terminated.Message))
 							}
 							if cs.LastTerminationState.Terminated != nil {
-								fmt.Printf("      LastTermination: Reason=%s, ExitCode=%d, Message=%s\n", cs.LastTerminationState.Terminated.Reason, cs.LastTerminationState.Terminated.ExitCode, cs.LastTerminationState.Terminated.Message)
+								errMsg.WriteString(fmt.Sprintf("      LastTermination: Reason=%s, ExitCode=%d, Message=%s\n", cs.LastTerminationState.Terminated.Reason, cs.LastTerminationState.Terminated.ExitCode, cs.LastTerminationState.Terminated.Message))
 							}
 						}
-						// Print pod events
+						// Get pod events
 						events, evtErr := kubeClient.CoreV1().Events(hubInstallNamespace).List(context.Background(), metav1.ListOptions{
 							FieldSelector: fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=Pod", pod.Name),
 						})
 						if evtErr == nil && len(events.Items) > 0 {
-							fmt.Printf("    Recent Events:\n")
+							errMsg.WriteString("    Recent Events:\n")
 							for _, evt := range events.Items {
-								fmt.Printf("      [%s] %s: %s\n", evt.Type, evt.Reason, evt.Message)
+								errMsg.WriteString(fmt.Sprintf("      [%s] %s: %s\n", evt.Type, evt.Reason, evt.Message))
 							}
 						}
 					}
 				}
-				fmt.Printf("=================================================\n\n")
+				errMsg.WriteString("=================================================\n")
 
-				return fmt.Errorf("available replicas for %s should >= 1, but get %d", deployment, d.Status.AvailableReplicas)
+				return fmt.Errorf(errMsg.String())
 			}
 		}
 
