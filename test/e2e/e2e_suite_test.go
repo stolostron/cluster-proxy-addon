@@ -113,6 +113,50 @@ func checkAddonStatus() {
 				return err
 			}
 			if d.Status.AvailableReplicas < 1 {
+				// Log detailed deployment status for debugging
+				fmt.Printf("\n========== Deployment %s/%s Debug Info ==========\n", hubInstallNamespace, deployment)
+				fmt.Printf("Replicas: Desired=%d, Ready=%d, Available=%d, Updated=%d, Unavailable=%d\n",
+					*d.Spec.Replicas, d.Status.ReadyReplicas, d.Status.AvailableReplicas, d.Status.UpdatedReplicas, d.Status.UnavailableReplicas)
+				fmt.Printf("Conditions:\n")
+				for _, cond := range d.Status.Conditions {
+					fmt.Printf("  - Type=%s, Status=%s, Reason=%s, Message=%s\n", cond.Type, cond.Status, cond.Reason, cond.Message)
+				}
+
+				// Get pods for this deployment
+				labelSelector := metav1.FormatLabelSelector(d.Spec.Selector)
+				pods, podErr := kubeClient.CoreV1().Pods(hubInstallNamespace).List(context.Background(), metav1.ListOptions{LabelSelector: labelSelector})
+				if podErr != nil {
+					fmt.Printf("Failed to list pods: %v\n", podErr)
+				} else {
+					fmt.Printf("Pods (total=%d):\n", len(pods.Items))
+					for _, pod := range pods.Items {
+						fmt.Printf("  - Pod: %s, Phase=%s\n", pod.Name, pod.Status.Phase)
+						for _, cs := range pod.Status.ContainerStatuses {
+							fmt.Printf("    Container: %s, Ready=%v, RestartCount=%d\n", cs.Name, cs.Ready, cs.RestartCount)
+							if cs.State.Waiting != nil {
+								fmt.Printf("      Waiting: Reason=%s, Message=%s\n", cs.State.Waiting.Reason, cs.State.Waiting.Message)
+							}
+							if cs.State.Terminated != nil {
+								fmt.Printf("      Terminated: Reason=%s, ExitCode=%d, Message=%s\n", cs.State.Terminated.Reason, cs.State.Terminated.ExitCode, cs.State.Terminated.Message)
+							}
+							if cs.LastTerminationState.Terminated != nil {
+								fmt.Printf("      LastTermination: Reason=%s, ExitCode=%d, Message=%s\n", cs.LastTerminationState.Terminated.Reason, cs.LastTerminationState.Terminated.ExitCode, cs.LastTerminationState.Terminated.Message)
+							}
+						}
+						// Print pod events
+						events, evtErr := kubeClient.CoreV1().Events(hubInstallNamespace).List(context.Background(), metav1.ListOptions{
+							FieldSelector: fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=Pod", pod.Name),
+						})
+						if evtErr == nil && len(events.Items) > 0 {
+							fmt.Printf("    Recent Events:\n")
+							for _, evt := range events.Items {
+								fmt.Printf("      [%s] %s: %s\n", evt.Type, evt.Reason, evt.Message)
+							}
+						}
+					}
+				}
+				fmt.Printf("=================================================\n\n")
+
 				return fmt.Errorf("available replicas for %s should >= 1, but get %d", deployment, d.Status.AvailableReplicas)
 			}
 		}
