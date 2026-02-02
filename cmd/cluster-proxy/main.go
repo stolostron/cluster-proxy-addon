@@ -24,6 +24,7 @@ func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	klog.InitFlags(nil)
+	klog.V(2).Info("Starting cluster-proxy-addon application")
 	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 
