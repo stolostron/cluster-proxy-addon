@@ -3,7 +3,7 @@ all: build
 
 HELM?=_output/linux-amd64/helm
 
-IMAGE_CLUSTER_PROXY?=quay.io/stolostron/cluster-proxy:main
+IMAGE_CLUSTER_PROXY?=quay.io/stolostron/cluster-proxy:backplane-2.8
 IMAGE_PULL_POLICY=Always
 IMAGE_TAG?=latest
 
