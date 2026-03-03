@@ -40,6 +40,17 @@ ANP_SRC_CODE ?= dependencymagnet/${ANP_NAME}/${ANP_VERSION}.tar.gz
 GO_TEST_PACKAGES :=./pkg/...
 KUBECTL ?= kubectl
 
+# envtest setup using sdk-go ensure-envtest.sh
+ENSURE_ENVTEST_SCRIPT := https://raw.githubusercontent.com/open-cluster-management-io/sdk-go/main/ci/envtest/ensure-envtest.sh
+
+.PHONY: envtest-setup
+envtest-setup:
+	$(eval export KUBEBUILDER_ASSETS=$(shell curl -fsSL $(ENSURE_ENVTEST_SCRIPT) | bash))
+	@echo "KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)"
+
+# Add envtest-setup as a prerequisite for test-unit (recipe from build-machinery-go)
+test-unit: envtest-setup
+
 CLUSTER_PROXY_ADDON_IMAGE?=${IMAGE_REGISTRY}/${IMAGE}:${IMAGE_TAG}
 
 # This will call a macro called "build-image" which will generate image specific targets based on the parameters:
