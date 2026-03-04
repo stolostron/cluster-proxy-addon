@@ -28,6 +28,9 @@ ANP_VERSION ?= 0.1.6.patch-03
 ANP_SRC_CODE ?= dependencymagnet/${ANP_NAME}/${ANP_VERSION}.tar.gz
 PERMANENT_TMP ?= _output
 
+# envtest setup
+ENSURE_ENVTEST_SCRIPT := https://raw.githubusercontent.com/open-cluster-management-io/sdk-go/main/ci/envtest/ensure-envtest.sh
+
 # Add packages to do unit test
 GO_TEST_PACKAGES :=./pkg/...
 KUBECTL ?= kubectl
@@ -50,6 +53,15 @@ build-anp:
 	mv $(PERMANENT_TMP)/$(ANP_NAME)/proxy-agent ./
 	mv $(PERMANENT_TMP)/$(ANP_NAME)/proxy-server ./
 .PHONY: build-anp
+
+.PHONY: envtest-setup
+envtest-setup:
+	$(eval export KUBEBUILDER_ASSETS=$(shell curl -fsSL $(ENSURE_ENVTEST_SCRIPT) | bash))
+	@echo "KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)"
+
+.PHONY: test-unit
+test-unit: envtest-setup
+	go test $(GO_TEST_PACKAGES) -coverprofile cover.out
 
 # e2e
 build-e2e:
