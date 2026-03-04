@@ -32,6 +32,8 @@ PERMANENT_TMP ?= _output
 GO_TEST_PACKAGES :=./pkg/...
 KUBECTL ?= kubectl
 
+ENSURE_ENVTEST_SCRIPT := https://raw.githubusercontent.com/open-cluster-management-io/sdk-go/main/ci/envtest/ensure-envtest.sh
+
 CLUSTER_PROXY_ADDON_IMAGE?=${IMAGE_REGISTRY}/${IMAGE}:${IMAGE_TAG}
 
 build-all: build build-anp
@@ -40,6 +42,15 @@ build-all: build build-anp
 build:
 	go build -o cluster-proxy ./cmd/cluster-proxy/main.go
 .PHONY: build
+
+.PHONY: envtest-setup
+envtest-setup:
+	$(eval export KUBEBUILDER_ASSETS=$(shell curl -fsSL $(ENSURE_ENVTEST_SCRIPT) | bash))
+	@echo "KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)"
+
+test: envtest-setup
+	go test $(GO_TEST_PACKAGES) -coverprofile cover.out
+.PHONY: test
 
 build-anp:
 	mkdir -p $(PERMANENT_TMP)
