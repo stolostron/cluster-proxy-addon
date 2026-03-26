@@ -1,6 +1,5 @@
 /*
- *
- * Copyright 2018 gRPC authors.
+ * Copyright 2024 gRPC authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,22 +15,23 @@
  *
  */
 
-package channelz
+// Package internal contains code internal to the pickfirst package.
+package internal
 
 import (
-	"syscall"
+	rand "math/rand/v2"
+	"time"
 )
 
-// GetSocketOption gets the socket option info of the conn.
-func GetSocketOption(socket any) *SocketOptionData {
-	c, ok := socket.(syscall.Conn)
-	if !ok {
-		return nil
+var (
+	// RandShuffle pseudo-randomizes the order of addresses.
+	RandShuffle = rand.Shuffle
+	// RandFloat64 returns, as a float64, a pseudo-random number in [0.0,1.0).
+	RandFloat64 = rand.Float64
+	// TimeAfterFunc allows mocking the timer for testing connection delay
+	// related functionality.
+	TimeAfterFunc = func(d time.Duration, f func()) func() {
+		timer := time.AfterFunc(d, f)
+		return func() { timer.Stop() }
 	}
-	data := &SocketOptionData{}
-	if rawConn, err := c.SyscallConn(); err == nil {
-		rawConn.Control(data.Getsockopt)
-		return data
-	}
-	return nil
-}
+)
