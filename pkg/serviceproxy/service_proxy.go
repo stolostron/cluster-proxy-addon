@@ -14,6 +14,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stolostron/cluster-proxy-addon/pkg/constant"
+	"github.com/stolostron/cluster-proxy-addon/pkg/serviceproxy/tokenreviewcache"
 	"github.com/stolostron/cluster-proxy-addon/pkg/utils"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,6 +42,12 @@ func NewServiceProxyCommand() *cobra.Command {
 	return cmd
 }
 
+const (
+	// defaultTokenReviewCacheTTL is the default TTL for cached TokenReview results.
+	// Cached entries expire after this duration, forcing a fresh TokenReview API call.
+	defaultTokenReviewCacheTTL = 5 * time.Minute
+)
+
 type serviceProxy struct {
 	cert, key    string
 	ocpserviceCA string
@@ -51,13 +58,20 @@ type serviceProxy struct {
 	tLSHandshakeTimeout   time.Duration
 	expectContinueTimeout time.Duration
 
+	tokenReviewCacheTTL time.Duration
+
 	hubKubeConfig            string
 	hubKubeClient            kubernetes.Interface
 	managedClusterKubeClient kubernetes.Interface
+
+	managedClusterTokenCache *tokenreviewcache.Cache
+	hubTokenCache            *tokenreviewcache.Cache
 }
 
 func newServiceProxy() *serviceProxy {
-	return &serviceProxy{}
+	return &serviceProxy{
+		tokenReviewCacheTTL: defaultTokenReviewCacheTTL,
+	}
 }
 
 func (s *serviceProxy) AddFlags(cmd *cobra.Command) {
@@ -75,6 +89,9 @@ func (s *serviceProxy) AddFlags(cmd *cobra.Command) {
 	flags.DurationVar(&s.idleConnTimeout, "idle-conn-timeout", 90*time.Second, "The maximum amount of time an idle (keep-alive) connection will remain idle before closing itself.")
 	flags.DurationVar(&s.tLSHandshakeTimeout, "tls-handshake-timeout", 10*time.Second, "The maximum amount of time waiting to wait for a TLS handshake.")
 	flags.DurationVar(&s.expectContinueTimeout, "expect-continue-timeout", 1*time.Second, "The amount of time to wait for a server's first response headers after fully writing the request headers if the request has an \"Expect: 100-continue\" header.")
+
+	// token review cache flags
+	flags.DurationVar(&s.tokenReviewCacheTTL, "token-review-cache-ttl", defaultTokenReviewCacheTTL, "TTL for cached TokenReview results. Set to 0 to disable caching.")
 }
 
 func (s *serviceProxy) Run(ctx context.Context) error {
@@ -142,6 +159,15 @@ func (s *serviceProxy) Run(ctx context.Context) error {
 	s.hubKubeClient, err = kubernetes.NewForConfig(hubConfig)
 	if err != nil {
 		return err
+	}
+
+	// initialize token review caches
+	if s.tokenReviewCacheTTL > 0 {
+		s.managedClusterTokenCache = tokenreviewcache.New(s.tokenReviewCacheTTL)
+		s.hubTokenCache = tokenreviewcache.New(s.tokenReviewCacheTTL)
+		klog.Infof("TokenReview cache enabled with TTL %v", s.tokenReviewCacheTTL)
+	} else {
+		klog.Infof("TokenReview cache disabled")
 	}
 
 	go func() {
@@ -219,6 +245,14 @@ func (s *serviceProxy) validate() error {
 }
 
 func (s *serviceProxy) hubUserAuthenticatedAndInfo(token string) (bool, *authenticationv1.UserInfo, error) {
+	// check cache first
+	if s.hubTokenCache != nil {
+		if auth, user, found := s.hubTokenCache.Get(token); found {
+			klog.V(4).Info("hub TokenReview cache hit")
+			return auth, user, nil
+		}
+	}
+
 	tokenReview, err := s.hubKubeClient.AuthenticationV1().TokenReviews().Create(context.Background(), &authenticationv1.TokenReview{
 		Spec: authenticationv1.TokenReviewSpec{
 			Token: token,
@@ -229,12 +263,27 @@ func (s *serviceProxy) hubUserAuthenticatedAndInfo(token string) (bool, *authent
 	}
 
 	if !tokenReview.Status.Authenticated {
+		if s.hubTokenCache != nil {
+			s.hubTokenCache.Set(token, false, &authenticationv1.UserInfo{})
+		}
 		return false, nil, nil
+	}
+
+	if s.hubTokenCache != nil {
+		s.hubTokenCache.Set(token, true, &tokenReview.Status.User)
 	}
 	return true, &tokenReview.Status.User, nil
 }
 
 func (s *serviceProxy) managedClusterUserAuthenticatedAndInfo(token string) (bool, *authenticationv1.UserInfo, error) {
+	// check cache first
+	if s.managedClusterTokenCache != nil {
+		if auth, user, found := s.managedClusterTokenCache.Get(token); found {
+			klog.V(4).Info("managed cluster TokenReview cache hit")
+			return auth, user, nil
+		}
+	}
+
 	tokenReview, err := s.managedClusterKubeClient.AuthenticationV1().TokenReviews().Create(context.Background(), &authenticationv1.TokenReview{
 		Spec: authenticationv1.TokenReviewSpec{
 			Token: token,
@@ -245,7 +294,14 @@ func (s *serviceProxy) managedClusterUserAuthenticatedAndInfo(token string) (boo
 	}
 
 	if !tokenReview.Status.Authenticated {
+		if s.managedClusterTokenCache != nil {
+			s.managedClusterTokenCache.Set(token, false, &authenticationv1.UserInfo{})
+		}
 		return false, nil, nil
+	}
+
+	if s.managedClusterTokenCache != nil {
+		s.managedClusterTokenCache.Set(token, true, &tokenReview.Status.User)
 	}
 	return true, &tokenReview.Status.User, nil
 }
