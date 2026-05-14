@@ -16,6 +16,6 @@ COPY --from=builder /go/src/github.com/stolostron/cluster-proxy-addon/cluster-pr
 COPY --from=builder /go/src/github.com/stolostron/cluster-proxy-addon/proxy-agent /
 COPY --from=builder /go/src/github.com/stolostron/cluster-proxy-addon/proxy-server /
 
-RUN microdnf update && microdnf clean all
+RUN microdnf update -y && microdnf clean all
 
 USER ${USER_UID}
