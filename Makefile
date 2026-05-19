@@ -68,10 +68,14 @@ build-e2e:
 	go test -c ./test/e2e
 .PHONY: build-e2e
 
+CLUSTERADM_VERSION ?= v1.2.0
+OS ?= $(shell uname -s | tr '[:upper:]' '[:lower:]')
+ARCH ?= $(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+
 deploy-ocm:
-	curl -L https://raw.githubusercontent.com/open-cluster-management-io/clusteradm/main/install.sh | INSTALL_DIR=$(PWD) bash
+	curl -L https://github.com/open-cluster-management-io/clusteradm/releases/download/$(CLUSTERADM_VERSION)/clusteradm_$(OS)_$(ARCH).tar.gz | tar xzf - -C $(PWD)
 	$(PWD)/clusteradm init --output-join-command-file join.sh --wait
-	echo " loopback --force-internal-endpoint-lookup" >> join.sh && sh join.sh
+	sh join.sh loopback --force-internal-endpoint-lookup
 	$(PWD)/clusteradm accept --clusters loopback --wait 30
 	$(KUBECTL) wait --for=condition=ManagedClusterConditionAvailable managedcluster/loopback
 .PHONY: deploy-ocm
