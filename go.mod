@@ -1,6 +1,6 @@
 module github.com/stolostron/cluster-proxy-addon
 
-go 1.23.6
+go 1.25.0
 
 replace golang.org/x/text => golang.org/x/text v0.3.8 // CVE-2022-32149
 
