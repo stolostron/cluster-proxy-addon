@@ -258,9 +258,23 @@ func (s *serviceProxy) getImpersonateToken() (string, error) {
 	return string(token), nil
 }
 
+// stripClientImpersonationHeaders removes any client-supplied impersonation headers.
+func stripClientImpersonationHeaders(h http.Header) {
+	h.Del(authenticationv1.ImpersonateUserHeader)
+	h.Del(authenticationv1.ImpersonateGroupHeader)
+	h.Del(authenticationv1.ImpersonateUIDHeader)
+	for key := range h {
+		if strings.HasPrefix(key, authenticationv1.ImpersonateUserExtraHeaderPrefix) {
+			h.Del(key)
+		}
+	}
+}
+
 // processAuthentication handles the authentication flow for both managed cluster and hub users
 func (s *serviceProxy) processAuthentication(req *http.Request) error {
 	token := strings.TrimPrefix(req.Header.Get("Authorization"), "Bearer ")
+
+	stripClientImpersonationHeaders(req.Header)
 
 	// determine if the token is a managed cluster user
 	managedClusterAuthenticated, _, err := s.managedClusterUserAuthenticatedAndInfo(token)
@@ -288,17 +302,16 @@ func (s *serviceProxy) processAuthentication(req *http.Request) error {
 
 // processHubUser handles the hub user specific operations including impersonation
 func (s *serviceProxy) processHubUser(req *http.Request, hubUserInfo *authenticationv1.UserInfo) error {
-	// set impersonate group header
+	req.Header.Del(authenticationv1.ImpersonateGroupHeader)
 	for _, group := range hubUserInfo.Groups {
-		// Here using `Add` instead of `Set` to support multiple groups
-		req.Header.Add("Impersonate-Group", group)
+		req.Header.Add(authenticationv1.ImpersonateGroupHeader, group)
 	}
 
 	// check if the hub user is serviceaccount kind, if so, add "cluster:hub:" prefix to the username
 	if strings.HasPrefix(hubUserInfo.Username, "system:serviceaccount:") {
-		req.Header.Set("Impersonate-User", fmt.Sprintf("cluster:hub:%s", hubUserInfo.Username))
+		req.Header.Set(authenticationv1.ImpersonateUserHeader, fmt.Sprintf("cluster:hub:%s", hubUserInfo.Username))
 	} else {
-		req.Header.Set("Impersonate-User", hubUserInfo.Username)
+		req.Header.Set(authenticationv1.ImpersonateUserHeader, hubUserInfo.Username)
 	}
 
 	// replace the original token with cluster-proxy service-account token which has impersonate permission
