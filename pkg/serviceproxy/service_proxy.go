@@ -9,11 +9,14 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
+
 	"github.com/stolostron/cluster-proxy-addon/pkg/constant"
 	"github.com/stolostron/cluster-proxy-addon/pkg/utils"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	"k8s.io/klog/v2"
 	addonutils "open-cluster-management.io/addon-framework/pkg/utils"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -126,6 +129,18 @@ func (s *serviceProxy) Run(ctx context.Context) error {
 	return httpserver.ListenAndServeTLS(s.cert, s.key)
 }
 
+// stripClientImpersonationHeaders removes any client-supplied impersonation headers.
+func stripClientImpersonationHeaders(h http.Header) {
+	h.Del(authenticationv1.ImpersonateUserHeader)
+	h.Del(authenticationv1.ImpersonateGroupHeader)
+	h.Del(authenticationv1.ImpersonateUIDHeader)
+	for key := range h {
+		if strings.HasPrefix(key, authenticationv1.ImpersonateUserExtraHeaderPrefix) {
+			h.Del(key)
+		}
+	}
+}
+
 func (s *serviceProxy) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	if klog.V(4).Enabled() {
 		dump, err := httputil.DumpRequest(req, true)
@@ -142,6 +157,8 @@ func (s *serviceProxy) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 		klog.Errorf("failed to get target service url from request: %v", err)
 		return
 	}
+
+	stripClientImpersonationHeaders(req.Header)
 
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	proxy.Transport = &http.Transport{
