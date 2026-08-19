@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc"
 	grpccredentials "google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	addonutils "open-cluster-management.io/addon-framework/pkg/utils"
 	konnectivity "sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client"
@@ -66,6 +67,14 @@ type userServer struct {
 	agentInstallNamespace  string
 
 	addonLister addonlisterv1alpha1.ManagedClusterAddOnLister
+
+	// exposedServicesConfigMap is the name of the ConfigMap (in the pod's own
+	// namespace) that lists permitted service proxy targets. Defaults to the
+	// well-known constant ExposedServicesConfigMapName.
+	exposedServicesConfigMap string
+	// serviceAllowlist is populated at startup from the ConfigMap and kept
+	// up to date by an informer.
+	serviceAllowlist *ServiceAllowlist
 }
 
 func (k *userServer) AddFlags(cmd *cobra.Command) {
@@ -85,6 +94,9 @@ func (k *userServer) AddFlags(cmd *cobra.Command) {
 	flags.StringVar(&k.serviceProxyCACertPath, "service-proxy-ca-cert", k.serviceProxyCACertPath, "The path to the CA certificate of the service proxy server")
 
 	flags.StringVar(&k.agentInstallNamespace, "agent-install-namespace", k.agentInstallNamespace, "The namespace of the agent install")
+
+	flags.StringVar(&k.exposedServicesConfigMap, "exposed-services-configmap", constant.ExposedServicesConfigMapName,
+		"Name of the ConfigMap (in the pod's namespace) that lists which services are reachable via the service proxy path")
 }
 
 func (k *userServer) Validate() error {
@@ -111,7 +123,7 @@ func newUserServer() *userServer {
 	return &userServer{}
 }
 
-func (k *userServer) init(ctx context.Context) error {
+func (k *userServer) init(ctx context.Context, kubeClient kubernetes.Interface, podNamespace string) error {
 	proxyTLSCfg, err := util.GetClientTLSConfig(k.proxyCACertPath, k.proxyCertPath, k.proxyKeyPath, k.proxyServerHost, nil)
 	if err != nil {
 		return err
@@ -152,6 +164,16 @@ func (k *userServer) init(ctx context.Context) error {
 	k.addonLister = addonInformerFactory.Addon().V1alpha1().ManagedClusterAddOns().Lister()
 	addonInformerFactory.Start(ctx.Done())
 
+	// Start the service allowlist watcher. The watcher enforces default-deny:
+	// only services listed in the ConfigMap are reachable via the service proxy
+	// path. Kube-apiserver proxy requests are not subject to this check.
+	k.serviceAllowlist, err = startServiceAllowlistWatcher(ctx, kubeClient, podNamespace, k.exposedServicesConfigMap)
+	if err != nil {
+		return fmt.Errorf("failed to start service allowlist watcher: %w", err)
+	}
+	klog.Infof("service allowlist active: %d entries loaded from ConfigMap %s/%s",
+		k.serviceAllowlist.Len(), podNamespace, k.exposedServicesConfigMap)
+
 	return nil
 }
 
@@ -171,12 +193,24 @@ func (k *userServer) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	switch utils.GetProxyType(req.RequestURI) {
 	case utils.ProxyTypeService:
 		tsc, err = utils.GetTargetServiceConfig(req.RequestURI)
+		if err != nil {
+			http.Error(wr, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if !k.serviceAllowlist.IsAllowed(tsc) {
+			klog.V(4).Infof("service proxy request denied: %s/%s is not in the exposed services allowlist",
+				tsc.Namespace, tsc.Service)
+			http.Error(wr,
+				fmt.Sprintf("service %s/%s is not in the exposed services allowlist", tsc.Namespace, tsc.Service),
+				http.StatusForbidden)
+			return
+		}
 	case utils.ProxyTypeKubeAPIServer:
 		tsc, err = utils.GetTargetServiceConfigForKubeAPIServer(req.RequestURI)
-	}
-	if err != nil {
-		http.Error(wr, err.Error(), http.StatusBadRequest)
-		return
+		if err != nil {
+			http.Error(wr, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 
 	targetURL, err := url.Parse(serviceProxyURL(tsc.Cluster))
@@ -230,7 +264,18 @@ func (k *userServer) Run(ctx context.Context) error {
 		klog.Fatal(err)
 	}
 
-	if err = k.init(ctx); err != nil {
+	podNamespace := os.Getenv("POD_NAMESPACE")
+	if len(podNamespace) == 0 {
+		klog.Fatalf("Pod namespace is empty, please set the ENV for POD_NAMESPACE")
+	}
+
+	// Create the kube client for the service allowlist watcher.
+	kubeClient, err := kubernetes.NewForConfig(ctrl.GetConfigOrDie())
+	if err != nil {
+		klog.Fatalf("failed to create kube client: %v", err)
+	}
+
+	if err = k.init(ctx, kubeClient, podNamespace); err != nil {
 		klog.Fatal(err)
 	}
 
