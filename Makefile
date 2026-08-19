@@ -109,7 +109,10 @@ deploy-addon-for-e2e: ensure-helm
 	--set global.pullPolicy="$(IMAGE_PULL_POLICY)" \
 	--set global.imageOverrides.cluster_proxy_addon="$(CLUSTER_PROXY_ADDON_IMAGE)" \
 	--set global.imageOverrides.cluster_proxy="$(IMAGE_CLUSTER_PROXY)" \
-	--set cluster_basedomain="$(shell $(KUBECTL) get ingress.config.openshift.io cluster -o=jsonpath='{.spec.domain}')"
+	--set cluster_basedomain="$(shell $(KUBECTL) get ingress.config.openshift.io cluster -o=jsonpath='{.spec.domain}')" \
+	--set 'exposedServices[0].namespace=openshift-monitoring' \
+	--set 'exposedServices[0].service=prometheus-k8s' \
+	--set 'exposedServices[0].port=9091'
 	$(KUBECTL) apply -f test/e2e/placement/ns.yaml
 	$(KUBECTL) apply -f test/e2e/placement/
 .PHONY: deploy-addon-for-e2e
