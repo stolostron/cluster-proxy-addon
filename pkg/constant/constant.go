@@ -10,4 +10,8 @@ const (
 	ServiceProxyName = "cluster-proxy-service-proxy"
 
 	AddonName = "cluster-proxy"
+
+	// ExposedServicesConfigMapName is the default name of the ConfigMap that
+	// controls which services are reachable via the service proxy path.
+	ExposedServicesConfigMapName = "cluster-proxy-exposed-services"
 )
