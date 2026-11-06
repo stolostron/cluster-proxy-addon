@@ -4,8 +4,8 @@ WORKDIR /go/src/github.com/stolostron/cluster-proxy-addon
 
 COPY . .
 
-RUN make build
-RUN make build-anp
+RUN CGO_ENABLED=1 GOEXPERIMENT=strictfipsruntime make build
+RUN CGO_ENABLED=1 GOEXPERIMENT=strictfipsruntime make build-anp
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
